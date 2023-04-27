@@ -6,7 +6,7 @@ const production = (process.env.NODE_ENV === 'production');
 module.exports = {
 	mode: production ? 'production' : 'development',
 	entry: {
-		main: './src/index.ts',
+		main: './src/main.ts',
 	},
 	output: {
 		filename: '[name].bundle.js',
