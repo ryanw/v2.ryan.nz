@@ -1,4 +1,3 @@
-node_modules/*
-dist/*
-!dist/index.html
-public/docs/
+node_modules/
+build/
+static/docs/

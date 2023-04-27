@@ -1,5 +1,5 @@
 {
-	"entryPoints": ["./src/"],
-	"exclude": ["src/__mocks__", "src/**/*.test.ts"],
-	"out": "public/docs"
+	"entryPoints": ["./src/lib.ts"],
+	"exclude": ["node_modules", "src/__mocks__", "src/**/*.test.ts"],
+	"out": "static/docs"
 }
