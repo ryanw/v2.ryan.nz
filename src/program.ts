@@ -25,6 +25,7 @@ export class Program {
 	protected shaders: ShaderMap = {};
 
 	protected attributes: AttributeMap = {};
+	protected instanceAttributes: AttributeMap = {};
 	protected uniforms: UniformMap = {};
 	protected textures: TextureMap = {};
 	protected attributeBuffers: Record<string, WebGLBuffer> = {};
@@ -44,18 +45,7 @@ export class Program {
 		}
 		this.gl.useProgram(this.program);
 
-		//this.updateUniforms();
 		this.enableVertexAttributes();
-	}
-
-	updateUniforms() {
-		const gl = this.gl;
-		for (const texture of Object.values(this.textures)) {
-			if (texture.location == null) {
-				continue;
-			}
-			gl.uniform1i(texture.location, texture.unit);
-		}
 	}
 
 	enableVertexAttributes() {
@@ -122,70 +112,8 @@ export class Program {
 	}
 
 	addAttribute(name: string, type: GLenum) {
-		const gl = this.gl;
-		let count = 1;
-		let glType = type;
-		switch (type) {
-			case gl.FLOAT_VEC2:
-			case gl.FLOAT_VEC3:
-			case gl.FLOAT_VEC4:
-			case gl.FLOAT_MAT2:
-			case gl.FLOAT_MAT3:
-			case gl.FLOAT_MAT4:
-				glType = gl.FLOAT;
-				break
-
-			case gl.INT_VEC2:
-			case gl.INT_VEC3:
-			case gl.INT_VEC4:
-				glType = gl.INT;
-				break
-
-			case gl.UNSIGNED_INT_VEC2:
-			case gl.UNSIGNED_INT_VEC3:
-			case gl.UNSIGNED_INT_VEC4:
-				glType = gl.UNSIGNED_INT;
-				break
-		}
-		switch (type) {
-			case gl.FLOAT_VEC2:
-			case gl.FLOAT_MAT2:
-			case gl.INT_VEC2:
-			case gl.UNSIGNED_INT_VEC2:
-			case gl.BOOL_VEC2:
-				count = 2;
-				break
-
-			case gl.FLOAT_VEC3:
-			case gl.FLOAT_MAT3:
-			case gl.INT_VEC3:
-			case gl.UNSIGNED_INT_VEC3:
-			case gl.BOOL_VEC3:
-				count = 3;
-				break;
-
-			case gl.FLOAT_VEC4:
-			case gl.FLOAT_MAT4:
-			case gl.INT_VEC4:
-			case gl.UNSIGNED_INT_VEC4:
-			case gl.BOOL_VEC4:
-				count = 4;
-				break;
-
-			case gl.FLOAT_MAT2:
-				count = 2 * 2;
-				break;
-
-			case gl.FLOAT_MAT3:
-				count = 3 * 3;
-				break;
-
-			case gl.FLOAT_MAT4:
-				count = 4 * 4;
-				break;
-		}
-		console.debug("Adding attribute", name, glType, count);
-		this.attributes[name] = { type: glType, count };
+		console.debug("Adding attribute", name, type);
+		this.attributes[name] = toAttribute(type);
 	}
 
 	removeAttribute(name: string) {
@@ -193,9 +121,51 @@ export class Program {
 		delete this.attributes[name];
 	}
 
+	bindAttribute(name: string, buffer: WebGLBuffer) {
+		const attrib = this.attributes[name];
+		if (!attrib) {
+			throw `Unknown attribute: ${name}`;
+		}
+		if (attrib.location == null) {
+			throw `Couldn't bind attribute: ${name}`;
+		}
+		const gl = this.gl;
+		gl.enableVertexAttribArray(attrib.location);
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.vertexAttribPointer(attrib.location, attrib.count, attrib.type, false, 0, 0);
+	}
+
+	addInstanceAttribute(name: string, type: GLenum) {
+		console.debug("Adding instance attribute", name, type);
+		this.instanceAttributes[name] = toAttribute(type);
+	}
+
+	removeInstanceAttribute(name: string) {
+		console.debug("Removing instance attribute", name);
+		delete this.instanceAttributes[name];
+	}
+
 	addUniform(name: string, type: GLenum) {
 		console.debug("Adding uniform", name, type);
 		this.uniforms[name] = { type };
+	}
+
+	bindUniform<V>(name: string, value: V) {
+		const uniform = this.uniforms[name];
+		if (!uniform) {
+			throw `Unknown uniform: ${name}`;
+		}
+		if (uniform.location == null) {
+			throw `Couldn't bind uniform: ${name}`;
+		}
+		const gl = this.gl;
+		switch (uniform.type) {
+			case gl.FLOAT_MAT4:
+				if (value instanceof Array) {
+					gl.uniformMatrix4fv(uniform.location, false, new Float32Array(value));
+				}
+				break;
+		}
 	}
 
 	removeUniform(name: string) {
@@ -215,18 +185,27 @@ export class Program {
 	}
 
 	nextTextureUnit() {
-		return Object.values(this.textures).reduce((a, { unit }) => Math.max(a, unit), 0);
+		// FIXME find a gap if one has been removed
+		const textures = Object.values(this.textures);
+		if (textures.length === 0) return 0;
+		return textures.reduce((a, { unit }) => Math.max(a, unit), 0) + 1;
 	}
 
 	bindTexture(name: string, buffer: WebGLBuffer) {
-		const gl = this.gl;
 		const texture = this.textures[name];
 		if (!texture) {
-			throw `Texture not found: ${name}`;
+			console.error(`Texture not defined: ${name}`);
+			return;
+		}
+		if (texture.location == null) {
+			console.error(`Texture not found in shader: ${name}`);
+			return;
 		}
 
+		const gl = this.gl;
 		gl.activeTexture(gl.TEXTURE0 + texture.unit);
 		gl.bindTexture(gl.TEXTURE_2D, buffer);
+		gl.uniform1i(texture.location, texture.unit);
 	}
 
 	addShader(type: GLenum, source: string) {
@@ -262,4 +241,71 @@ export class Program {
 
 		return shader;
 	}
+}
+
+function toAttribute(glType: GLenum): ProgramAttribute {
+	const gl = WebGL2RenderingContext;
+	let splitType = glType;
+	let count = 1;
+	switch (glType) {
+		case gl.FLOAT_VEC2:
+		case gl.FLOAT_VEC3:
+		case gl.FLOAT_VEC4:
+		case gl.FLOAT_MAT2:
+		case gl.FLOAT_MAT3:
+		case gl.FLOAT_MAT4:
+			splitType = gl.FLOAT;
+			break
+
+		case gl.INT_VEC2:
+		case gl.INT_VEC3:
+		case gl.INT_VEC4:
+			splitType = gl.INT;
+			break
+
+		case gl.UNSIGNED_INT_VEC2:
+		case gl.UNSIGNED_INT_VEC3:
+		case gl.UNSIGNED_INT_VEC4:
+			splitType = gl.UNSIGNED_INT;
+			break
+	}
+	switch (glType) {
+		case gl.FLOAT_VEC2:
+		case gl.FLOAT_MAT2:
+		case gl.INT_VEC2:
+		case gl.UNSIGNED_INT_VEC2:
+		case gl.BOOL_VEC2:
+			count = 2;
+			break
+
+		case gl.FLOAT_VEC3:
+		case gl.FLOAT_MAT3:
+		case gl.INT_VEC3:
+		case gl.UNSIGNED_INT_VEC3:
+		case gl.BOOL_VEC3:
+			count = 3;
+			break;
+
+		case gl.FLOAT_VEC4:
+		case gl.FLOAT_MAT4:
+		case gl.INT_VEC4:
+		case gl.UNSIGNED_INT_VEC4:
+		case gl.BOOL_VEC4:
+			count = 4;
+			break;
+
+		case gl.FLOAT_MAT2:
+			count = 2 * 2;
+			break;
+
+		case gl.FLOAT_MAT3:
+			count = 3 * 3;
+			break;
+
+		case gl.FLOAT_MAT4:
+			count = 4 * 4;
+			break;
+	}
+
+	return { type: splitType, count };
 }

@@ -14,6 +14,7 @@ export abstract class Scene {
 		this.gl = gl;
 		this.camera = new Camera();
 		this.composeProgram = new ComposeProgram(gl);
+
 	}
 
 	drawToScreen(buffer: GBuffer) {

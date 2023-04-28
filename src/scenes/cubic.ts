@@ -25,6 +25,7 @@ export class Cubic extends Scene {
 	resize(width: number, height: number) {
 		this.size = [width, height];
 		this.gl.viewport(0, 0, width, height);
+		this.gbuffer.resize(width, height)
 	}
 
 	async draw() {

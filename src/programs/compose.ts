@@ -13,7 +13,8 @@ export class ComposeProgram extends Program {
 		this.addVertexShader(vertSource);
 		this.addFragmentShader(fragSource);
 		this.addAttribute('position', gl.FLOAT_VEC2);
-		this.addTexture('albedo');
+		this.addTexture('g_albedo');
+		this.addTexture('g_position');
 
 		this.vertexBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
@@ -24,13 +25,18 @@ export class ComposeProgram extends Program {
 
 	compose(buffer: GBuffer, framebuffer: WebGLFramebuffer = 0) {
 		const gl = this.gl;
+		gl.enable(gl.BLEND);
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
 		this.use();
 
-		this.bindTexture('albedo', buffer.albedo);
-
 		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer || null);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-		gl.clearColor(0.0, 0.1, 0.0, 1.0);
+
+		this.bindAttribute('position', this.vertexBuffer);
+		this.bindTexture('g_albedo', buffer.albedo);
+		this.bindTexture('g_position', buffer.position);
+
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 		gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 	}
