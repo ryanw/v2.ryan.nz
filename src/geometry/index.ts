@@ -1,3 +1,3 @@
 export class Geometry<V> {
-	vertices: Array<V>
+	vertices: Array<V> = [];
 }

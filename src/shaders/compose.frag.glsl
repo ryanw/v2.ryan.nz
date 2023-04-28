@@ -2,10 +2,13 @@
 precision highp float;
 precision highp sampler2D;
 
+uniform sampler2D albedo;
+
 in vec2 uv;
 
 out vec4 outColor;
 
 void main(void) {
-	outColor = vec4(uv, 1.0, 1.0);
+	vec4 color = texture(albedo, uv);
+	outColor = color;
 }

@@ -7,9 +7,9 @@ export class GBuffer {
 
 	constructor(gl: WebGL2RenderingContext) {
 		this.gl = gl;
-		this.position = gl.createTexture();
-		this.normal = gl.createTexture();
-		this.specular = gl.createTexture();
-		this.albedo = gl.createTexture();
+		this.position = gl.createTexture()!;
+		this.normal = gl.createTexture()!;
+		this.specular = gl.createTexture()!;
+		this.albedo = gl.createTexture()!;
 	}
 }

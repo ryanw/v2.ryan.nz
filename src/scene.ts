@@ -1,4 +1,4 @@
-import { Camera, GBuffer, Renderer } from "./lib";
+import { Camera, GBuffer } from "./lib";
 import { ComposeProgram } from "./programs/compose";
 
 export abstract class Scene {
@@ -7,17 +7,13 @@ export abstract class Scene {
 	 */
 	camera: Camera;
 
-	private gl: WebGL2RenderingContext;
+	protected gl: WebGL2RenderingContext;
 	private composeProgram: ComposeProgram;
 
 	constructor(gl: WebGL2RenderingContext) {
 		this.gl = gl;
-		this.buildCamera();
-		this.composeProgram = new ComposeProgram(gl);
-	}
-
-	buildCamera() {
 		this.camera = new Camera();
+		this.composeProgram = new ComposeProgram(gl);
 	}
 
 	drawToScreen(buffer: GBuffer) {
