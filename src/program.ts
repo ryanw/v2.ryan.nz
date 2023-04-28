@@ -9,17 +9,24 @@ export interface ProgramUniform {
 	type: number;
 }
 
+export interface ProgramTexture {
+	location?: WebGLUniformLocation;
+	unit: GLenum;
+}
+
 export type UniformMap = Record<string, ProgramUniform>;
 export type AttributeMap = Record<string, ProgramAttribute>;
+export type TextureMap = Record<string, ProgramTexture>;
 export type ShaderMap = Record<GLenum, string>;
 
 export class Program {
 	protected gl: WebGL2RenderingContext;
-	protected program: WebGLProgram;
+	protected program: WebGLProgram | null = null;
 	protected shaders: ShaderMap = {};
 
 	protected attributes: AttributeMap = {};
 	protected uniforms: UniformMap = {};
+	protected textures: TextureMap = {};
 	protected attributeBuffers: Record<string, WebGLBuffer> = {};
 
 	constructor(gl: WebGL2RenderingContext) {
@@ -37,14 +44,28 @@ export class Program {
 		}
 		this.gl.useProgram(this.program);
 
+		//this.updateUniforms();
 		this.enableVertexAttributes();
+	}
+
+	updateUniforms() {
+		const gl = this.gl;
+		for (const texture of Object.values(this.textures)) {
+			if (texture.location == null) {
+				continue;
+			}
+			gl.uniform1i(texture.location, texture.unit);
+		}
 	}
 
 	enableVertexAttributes() {
 		const gl = this.gl;
 		for (const attrib of Object.values(this.attributes)) {
+			if (attrib.location == null) {
+				continue;
+			}
 			gl.enableVertexAttribArray(attrib.location);
-			gl.vertexAttribPointer(attrib.location, attrib.count, attrib.type, false, 0 ,0);
+			gl.vertexAttribPointer(attrib.location, attrib.count, attrib.type, false, 0, 0);
 		}
 	}
 
@@ -58,7 +79,7 @@ export class Program {
 	compile() {
 		this.free();
 		const gl = this.gl;
-		const program = gl.createProgram();
+		const program = gl.createProgram()!;
 		this.program = program;
 
 		this.compileShader(gl.VERTEX_SHADER);
@@ -72,10 +93,19 @@ export class Program {
 		// Uniform locations
 		for (const name in this.uniforms) {
 			const location = gl.getUniformLocation(program, name);
-			if (!location){ 
+			if (!location) {
 				console.error("Couldn't find uniform in shader", this.constructor, name, this.uniforms[name]);
 			} else {
 				this.uniforms[name].location = location;
+			}
+		}
+
+		for (const name in this.textures) {
+			const location = gl.getUniformLocation(program, name);
+			if (!location) {
+				console.error("Couldn't find sampler in shader", this.constructor, name, this.textures[name]);
+			} else {
+				this.textures[name].location = location;
 			}
 		}
 
@@ -86,7 +116,7 @@ export class Program {
 				console.error("Couldn't find vertex attribute", this.constructor, name, this.attributes[name]);
 			} else {
 				this.attributes[name].location = location;
-				this.attributeBuffers[name] = gl.createBuffer();
+				this.attributeBuffers[name] = gl.createBuffer()!;
 			}
 		}
 	}
@@ -173,6 +203,32 @@ export class Program {
 		delete this.uniforms[name];
 	}
 
+	addTexture(name: string, unit?: number) {
+		unit ??= this.nextTextureUnit();
+		console.debug("Adding texture", name, unit);
+		this.textures[name] = { unit };
+	}
+
+	removeTexture(name: string) {
+		console.debug("Removing texture", name);
+		delete this.textures[name];
+	}
+
+	nextTextureUnit() {
+		return Object.values(this.textures).reduce((a, { unit }) => Math.max(a, unit), 0);
+	}
+
+	bindTexture(name: string, buffer: WebGLBuffer) {
+		const gl = this.gl;
+		const texture = this.textures[name];
+		if (!texture) {
+			throw `Texture not found: ${name}`;
+		}
+
+		gl.activeTexture(gl.TEXTURE0 + texture.unit);
+		gl.bindTexture(gl.TEXTURE_2D, buffer);
+	}
+
 	addShader(type: GLenum, source: string) {
 		console.debug("Adding shader", { type, source });
 		this.shaders[type] = source;
@@ -187,8 +243,11 @@ export class Program {
 	}
 
 	compileShader(glType: GLenum): WebGLShader {
+		if (!this.program) {
+			throw `Can't compile shader without a program`;
+		}
 		const gl = this.gl;
-		const shader = gl.createShader(glType);
+		const shader = gl.createShader(glType)!;
 		const source = this.shaders[glType];
 		if (!source) {
 			throw `No shader defined for ${glType}`;
