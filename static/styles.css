@@ -18,6 +18,7 @@ main > :last-child {
 }
 
 main > canvas {
+	background: #000;
 	position: absolute;
 	left: 0;
 	top: 0;

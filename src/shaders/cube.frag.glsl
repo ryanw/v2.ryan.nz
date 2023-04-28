@@ -7,8 +7,10 @@ uniform sampler2D frame;
 in vec3 vPosition;
 in vec2 vTexCoord;
 
-out vec4 outColor;
+layout(location = 0) out vec4 outAlbedo;
+layout(location = 1) out vec4 outPosition;
 
 void main(void) {
-	outColor = vec4(vTexCoord, 1.0, 1.0);
+	outAlbedo = vec4(vTexCoord, 1.0, 1.0);
+	outPosition = vec4(vPosition, 1.0);
 }
