@@ -2,6 +2,7 @@ import { Color, GBuffer, Program } from "../lib";
 import vertSource from '../shaders/cube.vert.glsl';
 import fragSource from '../shaders/cube.frag.glsl';
 import { Matrix4, Point3, Size2, transform } from "../math";
+import { multiply, rotation, translation } from "../math/transform";
 
 export interface Cube {
 	transform: Matrix4,
@@ -98,9 +99,6 @@ export class CubeProgram extends Program {
 
 		this.bindAttribute('position', this.positionBuffer);
 		this.bindAttribute('uv', this.uvBuffer);
-		this.bindUniform('camera.view', transform.identity());
-		this.bindUniform('camera.model', transform.translation(Math.sin(performance.now() / 1000.0) / 4.0, 0.0, 0.0));
-		this.bindUniform('camera.projection', transform.identity());
 
 		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, target.framebuffer);
 		gl.clearBufferfv(gl.COLOR, 0, [0.0, 0.0, 0.0, 0.0]);
@@ -109,6 +107,16 @@ export class CubeProgram extends Program {
 		// FIXME use gl.getFragDataLocation to figure out which ones to use
 		gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
 
+		const projection = transform.perspective(target.aspect, 45.0, 1.0, 1000.0);
+		const model = multiply(
+			translation(Math.sin(performance.now() / 1000.0) / 4.0, 0.0, -2.0),
+			rotation(0.0, performance.now() / 1000.0, 0.0),
+		);
+
+		// Draw one
+		this.bindUniform('camera.view', transform.identity());
+		this.bindUniform('camera.model', model);
+		this.bindUniform('camera.projection', projection);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 		gl.drawElements(gl.TRIANGLES, CUBE_INDICES.length, gl.UNSIGNED_SHORT, 0);
 	}
