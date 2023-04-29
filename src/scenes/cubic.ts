@@ -1,5 +1,6 @@
 import { GBuffer, Scene } from "../lib";
 import { Size2, transform } from "../math";
+import { multiply, rotation, translation } from "../math/transform";
 import { Cube, CubeProgram } from "../programs/cube";
 
 export class Cubic extends Scene {
@@ -13,6 +14,7 @@ export class Cubic extends Scene {
 		this.program = new CubeProgram(gl);
 		this.gbuffer = new GBuffer(gl);
 		this.updateViewport();
+
 	}
 
 	updateViewport() {
@@ -20,6 +22,26 @@ export class Cubic extends Scene {
 		if (width !== this.size[0] || height !== this.size[1]) {
 			this.resize(width, height);
 		}
+	}
+
+	updateCubes() {
+		const t = performance.now() / 1000;
+		this.cubes = [
+			{
+				transform: multiply(
+					translation(Math.sin(t), 0.0, -2.0),
+					rotation(0.0, t, 0.0),
+				),
+				color: [1.0, 0.0, 1.0, 1.0],
+			},
+			{
+				transform: multiply(
+					translation(Math.sin(t), 4.0, -6.0),
+					rotation(0.0, t, 0.0),
+				),
+				color: [1.0, 0.0, 1.0, 1.0],
+			}
+		]
 	}
 
 	resize(width: number, height: number) {
@@ -32,6 +54,7 @@ export class Cubic extends Scene {
 		return new Promise(resolve => {
 			// Wait for vsync -- TODO flip double buffers
 			requestAnimationFrame(() => {
+				this.updateCubes();
 				this.updateViewport();
 				this.program.draw(this.gbuffer, this.cubes);
 				this.drawToScreen(this.gbuffer);

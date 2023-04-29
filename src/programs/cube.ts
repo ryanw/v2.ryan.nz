@@ -57,6 +57,7 @@ export class CubeProgram extends Program {
 	private positionBuffer: WebGLBuffer;
 	private uvBuffer: WebGLBuffer;
 	private indexBuffer: WebGLBuffer;
+	private transformBuffer: WebGLBuffer;
 
 	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
@@ -65,10 +66,9 @@ export class CubeProgram extends Program {
 
 		this.addAttribute('position', gl.FLOAT_VEC3);
 		this.addAttribute('uv', gl.FLOAT_VEC2);
-		//this.addInstanceAttribute('model', gl.FLOAT_MAT4);
+		this.addInstanceAttribute('transform', gl.FLOAT_MAT4);
 
 		this.addUniform('camera.view', gl.FLOAT_MAT4);
-		this.addUniform('camera.model', gl.FLOAT_MAT4);
 		this.addUniform('camera.projection', gl.FLOAT_MAT4);
 
 		this.positionBuffer = gl.createBuffer()!;
@@ -78,6 +78,9 @@ export class CubeProgram extends Program {
 		this.uvBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, CUBE_UVS, gl.STATIC_DRAW);
+
+		this.transformBuffer = gl.createBuffer()!;
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.transformBuffer);
 
 		this.indexBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
@@ -90,11 +93,20 @@ export class CubeProgram extends Program {
 		const gl = this.gl;
 		this.use();
 
+		const floats = cubes.reduce<number[]>((a, { transform } ) => a.concat(transform), []);
+		const transforms = new Float32Array(floats);
+
+		// Upload all the cube transforms
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.transformBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, transforms, gl.DYNAMIC_DRAW);
+
+
 		gl.enable(gl.DEPTH_TEST);
 		gl.depthFunc(gl.LEQUAL);
 
 		this.bindAttribute('position', this.positionBuffer);
 		this.bindAttribute('uv', this.uvBuffer);
+		this.bindInstanceAttribute('transform', this.transformBuffer);
 
 		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, target.framebuffer);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -103,7 +115,6 @@ export class CubeProgram extends Program {
 		gl.clearBufferfv(gl.COLOR, 2, [0.0, 0.1, 0.0, 0.0]);
 		gl.clearBufferfv(gl.COLOR, 3, [0.0, 0.1, 0.1, 0.0]);
 
-		// FIXME use gl.getFragDataLocation to figure out which ones to use
 		gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
 
 		const projection = transform.perspective(target.aspect, 45.0, 1.0, 1000.0);
@@ -114,9 +125,8 @@ export class CubeProgram extends Program {
 
 		// Draw one
 		this.bindUniform('camera.view', transform.identity());
-		this.bindUniform('camera.model', model);
 		this.bindUniform('camera.projection', projection);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-		gl.drawElements(gl.TRIANGLES, CUBE_INDICES.length, gl.UNSIGNED_SHORT, 0);
+		gl.drawElementsInstanced(gl.TRIANGLES, CUBE_INDICES.length, gl.UNSIGNED_SHORT, 0, cubes.length);
 	}
 }
