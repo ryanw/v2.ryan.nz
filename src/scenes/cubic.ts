@@ -2,16 +2,19 @@ import { GBuffer, Scene } from "../lib";
 import { Size2, transform } from "../math";
 import { multiply, rotation, translation } from "../math/transform";
 import { Cube, CubeProgram } from "../programs/cube";
+import { GridProgram } from "../programs/grid";
 
 export class Cubic extends Scene {
 	cubes: Array<Cube> = [];
 	private program: CubeProgram;
+	private gridProgram: GridProgram;
 	private gbuffer: GBuffer;
 	private size: Size2 = [1, 1];
 
 	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
 		this.program = new CubeProgram(gl);
+		this.gridProgram = new GridProgram(gl);
 		this.gbuffer = new GBuffer(gl);
 		this.updateViewport();
 
@@ -56,7 +59,8 @@ export class Cubic extends Scene {
 			requestAnimationFrame(() => {
 				this.updateCubes();
 				this.updateViewport();
-				this.program.draw(this.gbuffer, this.cubes);
+				//this.program.draw(this.gbuffer, this.cubes);
+				this.gridProgram.draw(this.gbuffer);
 				this.drawToScreen(this.gbuffer);
 				resolve(void 0);
 			})
