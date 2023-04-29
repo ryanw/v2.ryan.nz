@@ -29,11 +29,14 @@ export class Cubic extends Scene {
 	}
 
 	async draw() {
-		this.updateViewport();
-		this.program.draw(this.gbuffer, this.cubes);
-		this.drawToScreen(this.gbuffer);
-
-		// Wait for vsync -- TODO flip double buffers
-		return new Promise(resolve => requestAnimationFrame(resolve));
+		return new Promise(resolve => {
+			// Wait for vsync -- TODO flip double buffers
+			requestAnimationFrame(() => {
+				this.updateViewport();
+				this.program.draw(this.gbuffer, this.cubes);
+				this.drawToScreen(this.gbuffer);
+				resolve(void 0);
+			})
+		});
 	}
 }

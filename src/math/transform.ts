@@ -75,6 +75,23 @@ export function scaling(x: number, y: number, z: number): Matrix4 {
 	];
 }
 
+export function perspective(aspect: number, fovDegrees: number, near: number, far: number): Matrix4 {
+	const fov = fovDegrees * (Math.PI / 180);
+	const f = 1.0 / Math.tan(fov / 2.0);
+	const range = 1.0 / (near - far);
+
+	const x = f / aspect;
+	const y = f;
+	const z = (near + far) * range;
+	const w = near * far * range * 2;
+	return [
+		x, 0, 0, 0,
+		0, y, 0, 0,
+		0, 0, z, w,
+		0, 0, -1, 0,
+	];
+}
+
 export function multiply(...mats: Array<Matrix4>): Matrix4 {
 	let result = mats[0];
 	for (let i = 1; i < mats.length; i++) {

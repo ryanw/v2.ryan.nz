@@ -165,6 +165,8 @@ export class Program {
 					gl.uniformMatrix4fv(uniform.location, false, new Float32Array(value));
 				}
 				break;
+			default:
+				console.error("Unhandled uniform", name, uniform);
 		}
 	}
 

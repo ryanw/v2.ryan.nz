@@ -45,10 +45,15 @@ export class GBuffer {
 		this.specular = generateTexture(gl, 3);
 	}
 
+	get aspect(): number {
+		return this.size[0] / this.size[1];
+	}
+
 	resize(width: number, height: number) {
 		const gl = this.gl;
 		if (width !== this.size[0] || height !== this.size[1]) {
 			console.debug("Resize GBuffer", width, height);
+			this.size = [width, height];
 
 			gl.deleteFramebuffer(this.framebuffer);
 			this.framebuffer = gl.createFramebuffer()!;
