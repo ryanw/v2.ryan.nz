@@ -97,10 +97,14 @@ export class CubeProgram extends Program {
 		const gl = this.gl;
 		this.use();
 
+		gl.enable(gl.DEPTH_TEST);
+		gl.depthFunc(gl.LEQUAL);
+
 		this.bindAttribute('position', this.positionBuffer);
 		this.bindAttribute('uv', this.uvBuffer);
 
 		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, target.framebuffer);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.clearBufferfv(gl.COLOR, 0, [0.0, 0.0, 0.0, 0.0]);
 		gl.clearBufferfv(gl.COLOR, 1, [0.0, 0.0, 0.0, 0.0]);
 
@@ -109,7 +113,7 @@ export class CubeProgram extends Program {
 
 		const projection = transform.perspective(target.aspect, 45.0, 1.0, 1000.0);
 		const model = multiply(
-			translation(Math.sin(performance.now() / 1000.0) / 4.0, 0.0, -2.0),
+			translation(Math.sin(performance.now() / 1000.0), 0.0, -2.0),
 			rotation(0.0, performance.now() / 1000.0, 0.0),
 		);
 

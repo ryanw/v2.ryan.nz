@@ -29,6 +29,7 @@ export class GBuffer {
 	gl: WebGL2RenderingContext
 	size: Size2 = [1, 1];
 	framebuffer: WebGLFramebuffer;
+	depthbuffer: WebGLRenderbuffer;
 	albedo: WebGLTexture;
 	position: WebGLTexture;
 	normal: WebGLTexture;
@@ -39,6 +40,10 @@ export class GBuffer {
 
 		this.framebuffer = gl.createFramebuffer()!;
 		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
+		this.depthbuffer = gl.createRenderbuffer()!;
+		gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthbuffer);
+		gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthbuffer);
+		
 		this.albedo = generateTexture(gl, 0)
 		this.position = generateTexture(gl, 1);
 		this.normal = generateTexture(gl, 2);
@@ -56,9 +61,17 @@ export class GBuffer {
 			this.size = [width, height];
 
 			gl.deleteFramebuffer(this.framebuffer);
-			this.framebuffer = gl.createFramebuffer()!;
-			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
+			gl.deleteRenderbuffer(this.depthbuffer);
 
+			this.framebuffer = gl.createFramebuffer()!;
+			this.depthbuffer = gl.createRenderbuffer()!;
+
+			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
+			gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthbuffer);
+
+			gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthbuffer);
+
+			gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
 			resizeTexture(gl, this.albedo, 0, width, height);
 			resizeTexture(gl, this.position, 1, width, height);
 			resizeTexture(gl, this.normal, 2, width, height);
