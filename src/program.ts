@@ -4,6 +4,13 @@ export interface ProgramAttribute {
 	type: number;
 }
 
+export interface ProgramInstanceAttribute {
+	location?: GLenum;
+	count: number;
+	type: number;
+	divisor: number;
+}
+
 export interface ProgramUniform {
 	location?: WebGLUniformLocation;
 	type: number;
@@ -16,6 +23,7 @@ export interface ProgramTexture {
 
 export type UniformMap = Record<string, ProgramUniform>;
 export type AttributeMap = Record<string, ProgramAttribute>;
+export type InstanceAttributeMap = Record<string, ProgramInstanceAttribute>;
 export type TextureMap = Record<string, ProgramTexture>;
 export type ShaderMap = Record<GLenum, string>;
 
@@ -25,10 +33,9 @@ export class Program {
 	protected shaders: ShaderMap = {};
 
 	protected attributes: AttributeMap = {};
-	protected instanceAttributes: AttributeMap = {};
+	protected instanceAttributes: InstanceAttributeMap = {};
 	protected uniforms: UniformMap = {};
 	protected textures: TextureMap = {};
-	protected attributeBuffers: Record<string, WebGLBuffer> = {};
 
 	constructor(gl: WebGL2RenderingContext) {
 		console.debug("Creating WebGL Program");
@@ -106,7 +113,15 @@ export class Program {
 				console.error("Couldn't find vertex attribute", this.constructor, name, this.attributes[name]);
 			} else {
 				this.attributes[name].location = location;
-				this.attributeBuffers[name] = gl.createBuffer()!;
+			}
+		}
+
+		for (const name in this.instanceAttributes) {
+			const location = gl.getAttribLocation(program, name);
+			if (location < 0) {
+				console.error("Couldn't find instance attribute", this.constructor, name, this.attributes[name]);
+			} else {
+				this.instanceAttributes[name].location = location;
 			}
 		}
 	}
@@ -133,16 +148,45 @@ export class Program {
 		gl.enableVertexAttribArray(attrib.location);
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.vertexAttribPointer(attrib.location, attrib.count, attrib.type, false, 0, 0);
+		gl.vertexAttribDivisor(attrib.location, 0);
 	}
 
-	addInstanceAttribute(name: string, type: GLenum) {
-		console.debug("Adding instance attribute", name, type);
-		this.instanceAttributes[name] = toAttribute(type);
+	addInstanceAttribute(name: string, type: GLenum, divisor: number = 1) {
+		console.debug("Adding instance attribute", name, type, divisor);
+		this.instanceAttributes[name] = toAttribute(type, divisor);
 	}
 
 	removeInstanceAttribute(name: string) {
 		console.debug("Removing instance attribute", name);
 		delete this.instanceAttributes[name];
+	}
+
+	bindInstanceAttribute(name: string, buffer: WebGLBuffer) {
+		const attrib = this.instanceAttributes[name];
+		if (!attrib) {
+			throw `Unknown instance attribute: ${name}`;
+		}
+		if (attrib.location == null) {
+			throw `Couldn't bind instance attribute: ${name}`;
+		}
+		const gl = this.gl;
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		// FIXME hacky detect a mat4
+		let offset = 0;
+		if (attrib.type === gl.FLOAT && attrib.count === 16) {
+			const slotCount = 4;
+			let byteSize = 4 * attrib.count;
+			for (let i = 0; i < slotCount; i++) {
+				const loc = attrib.location + i;
+				gl.enableVertexAttribArray(loc);
+				gl.vertexAttribPointer(loc, attrib.count / slotCount, attrib.type, false, byteSize, offset);
+				gl.vertexAttribDivisor(loc, attrib.divisor);
+				offset += 4 * 4; // 4 bytes x 4 floats
+			}
+		}
+		else {
+			console.error("Instance attribute not handled", name, attrib);
+		}
 	}
 
 	addUniform(name: string, type: GLenum) {
@@ -245,7 +289,7 @@ export class Program {
 	}
 }
 
-function toAttribute(glType: GLenum): ProgramAttribute {
+function toAttribute(glType: GLenum, divisor: number | null = null): typeof divisor extends null ? ProgramAttribute : ProgramInstanceAttribute {
 	const gl = WebGL2RenderingContext;
 	let splitType = glType;
 	let count = 1;
@@ -273,7 +317,6 @@ function toAttribute(glType: GLenum): ProgramAttribute {
 	}
 	switch (glType) {
 		case gl.FLOAT_VEC2:
-		case gl.FLOAT_MAT2:
 		case gl.INT_VEC2:
 		case gl.UNSIGNED_INT_VEC2:
 		case gl.BOOL_VEC2:
@@ -281,7 +324,6 @@ function toAttribute(glType: GLenum): ProgramAttribute {
 			break
 
 		case gl.FLOAT_VEC3:
-		case gl.FLOAT_MAT3:
 		case gl.INT_VEC3:
 		case gl.UNSIGNED_INT_VEC3:
 		case gl.BOOL_VEC3:
@@ -289,7 +331,6 @@ function toAttribute(glType: GLenum): ProgramAttribute {
 			break;
 
 		case gl.FLOAT_VEC4:
-		case gl.FLOAT_MAT4:
 		case gl.INT_VEC4:
 		case gl.UNSIGNED_INT_VEC4:
 		case gl.BOOL_VEC4:
@@ -309,5 +350,10 @@ function toAttribute(glType: GLenum): ProgramAttribute {
 			break;
 	}
 
-	return { type: splitType, count };
+	if (divisor == null) {
+		// FIXME type validation is wonky
+		return { type: splitType, count } as ProgramAttribute as any;
+	} else {
+		return { type: splitType, count, divisor } as ProgramInstanceAttribute;
+	}
 }

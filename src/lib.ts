@@ -1,7 +1,7 @@
 export { Camera } from './camera';
 export { Scene } from './scene';
 export { Geometry } from './geometry';
-export { Program, ProgramUniform, ProgramAttribute, ProgramTexture, AttributeMap, ShaderMap, UniformMap, TextureMap } from './program';
+export { Program, ProgramUniform, ProgramAttribute, ProgramInstanceAttribute, ProgramTexture, AttributeMap, InstanceAttributeMap, ShaderMap, UniformMap, TextureMap } from './program';
 export { Pipeline } from './pipeline';
 export { GBuffer } from './gbuffer';
 import * as scenes from './scenes';
