@@ -118,14 +118,10 @@ export class CubeProgram extends Program {
 		gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
 
 		const projection = transform.perspective(target.aspect, 45.0, 1.0, 1000.0);
-		const model = multiply(
-			translation(Math.sin(performance.now() / 1000.0), 0.0, -2.0),
-			rotation(0.0, performance.now() / 1000.0, 0.0),
-		);
-
-		// Draw one
 		this.bindUniform('camera.view', transform.identity());
 		this.bindUniform('camera.projection', projection);
+
+		// Draw all the cubes
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 		gl.drawElementsInstanced(gl.TRIANGLES, CUBE_INDICES.length, gl.UNSIGNED_SHORT, 0, cubes.length);
 	}

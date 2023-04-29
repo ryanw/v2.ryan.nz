@@ -244,7 +244,7 @@ export class Program {
 			return;
 		}
 		if (texture.location == null) {
-			console.error(`Texture not found in shader: ${name}`);
+			console.warn(`Texture not found in shader: ${name}`);
 			return;
 		}
 
