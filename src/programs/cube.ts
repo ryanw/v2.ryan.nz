@@ -9,13 +9,6 @@ export interface Cube {
 	color: Color
 };
 
-type Triangle = [number, number, number];
-
-enum GBufferTarget {
-	Albedo = 0,
-	Position,
-}
-
 const CUBE_VERTICES = new Float32Array([
 	-0.5, -0.5, 0.5,
 	0.5, -0.5, 0.5,
@@ -105,11 +98,13 @@ export class CubeProgram extends Program {
 
 		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, target.framebuffer);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		gl.clearBufferfv(gl.COLOR, 0, [0.0, 0.0, 0.0, 0.0]);
-		gl.clearBufferfv(gl.COLOR, 1, [0.0, 0.0, 0.0, 0.0]);
+		gl.clearBufferfv(gl.COLOR, 0, [0.1, 0.0, 0.0, 0.0]);
+		gl.clearBufferfv(gl.COLOR, 1, [0.1, 0.1, 0.0, 0.0]);
+		gl.clearBufferfv(gl.COLOR, 2, [0.0, 0.1, 0.0, 0.0]);
+		gl.clearBufferfv(gl.COLOR, 3, [0.0, 0.1, 0.1, 0.0]);
 
 		// FIXME use gl.getFragDataLocation to figure out which ones to use
-		gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+		gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
 
 		const projection = transform.perspective(target.aspect, 45.0, 1.0, 1000.0);
 		const model = multiply(
