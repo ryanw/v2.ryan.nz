@@ -60,6 +60,7 @@ export class GBuffer {
 			console.debug("Resize GBuffer", width, height);
 			this.size = [width, height];
 
+			// Delete and recreate the framebuffer + renderbuffer
 			gl.deleteFramebuffer(this.framebuffer);
 			gl.deleteRenderbuffer(this.depthbuffer);
 
@@ -69,9 +70,13 @@ export class GBuffer {
 			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
 			gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthbuffer);
 
+			// Reattach new renderbuffer to the new framebuffer
 			gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthbuffer);
 
+			// Resize depth texture
 			gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+
+			// Resize all the gbuffer textures
 			resizeTexture(gl, this.albedo, 0, width, height);
 			resizeTexture(gl, this.position, 1, width, height);
 			resizeTexture(gl, this.normal, 2, width, height);

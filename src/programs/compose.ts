@@ -15,6 +15,8 @@ export class ComposeProgram extends Program {
 		this.addAttribute('position', gl.FLOAT_VEC2);
 		this.addTexture('g_albedo');
 		this.addTexture('g_position');
+		this.addTexture('g_normal');
+		this.addTexture('g_specular');
 
 		this.vertexBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
@@ -35,6 +37,8 @@ export class ComposeProgram extends Program {
 		this.bindAttribute('position', this.vertexBuffer);
 		this.bindTexture('g_albedo', buffer.albedo);
 		this.bindTexture('g_position', buffer.position);
+		this.bindTexture('g_normal', buffer.normal);
+		this.bindTexture('g_specular', buffer.specular);
 
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 		gl.clear(gl.COLOR_BUFFER_BIT);

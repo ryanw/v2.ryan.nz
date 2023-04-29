@@ -17,7 +17,9 @@ out vec2 vTexCoord;
 
 
 void main() {
-	gl_Position = camera.projection * camera.view * camera.model * vec4(position, 1.0);
-	vPosition = position;
+	mat4 mv = camera.view * camera.model;
+	vec4 hpos = mv * vec4(position, 1.0);
+	gl_Position = camera.projection * hpos;
+	vPosition = hpos.xyz / hpos.w;
 	vTexCoord = uv;
 }
