@@ -14,7 +14,7 @@ export class Cubic extends Scene {
 	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
 		this.program = new CubeProgram(gl);
-		this.gridProgram = new GridProgram(gl, 128, 128);
+		this.gridProgram = new GridProgram(gl, 64, 64);
 		this.gbuffer = new GBuffer(gl);
 		this.updateViewport();
 
