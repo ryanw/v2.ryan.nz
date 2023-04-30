@@ -40,7 +40,7 @@ export class ComposeProgram extends Program {
 		this.bindTexture('g_normal', buffer.normal);
 		this.bindTexture('g_specular', buffer.specular);
 
-		gl.clearColor(0.267, 0.863, 1.000, 1.0);
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 		gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 	}

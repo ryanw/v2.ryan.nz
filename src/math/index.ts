@@ -1,3 +1,4 @@
+export const PHI = (1 + Math.sqrt(5)) / 2;
 export type Point4 = [number, number, number, number];
 export type Point3 = [number, number, number];
 export type Point2 = [number, number];
