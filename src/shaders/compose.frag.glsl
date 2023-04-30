@@ -11,14 +11,6 @@ in vec2 uv;
 
 out vec4 outColor;
 
-float edgeDistance(vec3 barycentric) {
-	vec3 dx = dFdx(barycentric);
-	vec3 dy = dFdy(barycentric);
-	vec3 d = fwidth(barycentric) * 10.0;
-	vec3 a = smoothstep(vec3(0.0), d * 2.0, barycentric);
-	return min(min(a.x, a.y), a.z);
-}
-
 void main(void) {
 	vec4 albedo = texture(g_albedo, uv);
 	vec4 position = texture(g_position, uv);
