@@ -31,7 +31,7 @@ void main(void) {
 		}
 	}
 
-	if (outColor.a > 0.0) {
+	if (outColor.a > -10.0) {
 		outColor = albedo;
 	}
 }
