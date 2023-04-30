@@ -59,9 +59,9 @@ export class Cubic extends Scene {
 			requestAnimationFrame(() => {
 				this.updateCubes();
 				this.updateViewport();
-				//this.program.draw(this.gbuffer, this.cubes);
-				this.gridProgram.draw(this.gbuffer);
-				this.drawToScreen(this.gbuffer);
+				this.program.draw(this.gbuffer, this.cubes);
+				//this.gridProgram.draw(this.gbuffer);
+				//this.drawToScreen(this.gbuffer);
 				resolve(void 0);
 			})
 		});

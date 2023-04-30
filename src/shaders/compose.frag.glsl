@@ -32,6 +32,6 @@ void main(void) {
 	}
 
 	if (outColor.a > -10.0) {
-		outColor = albedo;
+		outColor = vec4(-position.zzz / 22.0, 1.0);
 	}
 }
