@@ -14,6 +14,7 @@ in vec3 barycentric;
 in vec2 uv;
 
 out vec3 vPosition;
+out vec3 vSrcPosition;
 out vec2 vTexCoord;
 out vec3 vBarycentric;
 
@@ -23,6 +24,7 @@ void main() {
 	vec4 hpos = mv * vec4(position, 1.0);
 	gl_Position = camera.projection * hpos;
 	vPosition = hpos.xyz / hpos.w;
+	vSrcPosition = position;
 	vTexCoord = uv;
 	vBarycentric = barycentric;
 }
