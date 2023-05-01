@@ -31,7 +31,6 @@ export class ComposeProgram extends Program {
 	compose(buffer: GBuffer, framebuffer: WebGLFramebuffer = 0) {
 		const gl = this.gl;
 		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 		this.use();
 
