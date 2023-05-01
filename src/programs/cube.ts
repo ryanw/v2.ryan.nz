@@ -1,13 +1,13 @@
-import { Color, GBuffer, Program } from "../lib";
+import { Color, GBuffer, Program } from '../lib';
 import vertSource from '../shaders/cube.vert.glsl';
 import fragSource from '../shaders/cube.frag.glsl';
-import { Matrix4, Point3, Size2, transform } from "../math";
-import { multiply, rotation, translation } from "../math/transform";
+import { Matrix4, Point3, Size2, transform } from '../math';
+import { multiply, rotation, translation } from '../math/transform';
 
 export interface Cube {
 	transform: Matrix4,
 	color: Color
-};
+}
 
 const CUBE_VERTICES = new Float32Array([
 	-0.5, -0.5, 0.5,

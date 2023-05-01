@@ -6,7 +6,7 @@ export function scale<T extends Vector2 | Vector3 | Vector4>(v: T, scale: number
 
 export function magnitude<T extends number[]>(v: T): number {
 	let acc = 0;
-	for (let n of v) {
+	for (const n of v) {
 		acc += Math.pow(n, 2);
 	}
 	return Math.sqrt(acc);

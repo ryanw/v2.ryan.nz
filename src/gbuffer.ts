@@ -1,7 +1,7 @@
-import { Size2 } from "./math";
+import { Size2 } from './math';
 
 function generateTexture(gl: WebGL2RenderingContext, unit: number, width: number = 1, height: number = 1): WebGLTexture {
-	console.debug("Generating texture", unit, width, height);
+	console.debug('Generating texture', unit, width, height);
 	const pixels = new Uint32Array(width * height);
 	const bytes = new Uint8Array(pixels.buffer);
 	const texture = gl.createTexture()!;
@@ -26,7 +26,7 @@ function resizeTexture(gl: WebGL2RenderingContext, texture: WebGLTexture, unit: 
 }
 
 export class GBuffer {
-	gl: WebGL2RenderingContext
+	gl: WebGL2RenderingContext;
 	size: Size2 = [1, 1];
 	framebuffer: WebGLFramebuffer;
 	depthbuffer: WebGLRenderbuffer;
@@ -44,7 +44,7 @@ export class GBuffer {
 		gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthbuffer);
 		gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthbuffer);
 		
-		this.albedo = generateTexture(gl, 0)
+		this.albedo = generateTexture(gl, 0);
 		this.position = generateTexture(gl, 1);
 		this.normal = generateTexture(gl, 2);
 		this.specular = generateTexture(gl, 3);
@@ -57,7 +57,7 @@ export class GBuffer {
 	resize(width: number, height: number) {
 		const gl = this.gl;
 		if (width !== this.size[0] || height !== this.size[1]) {
-			console.debug("Resize GBuffer", width, height);
+			console.debug('Resize GBuffer', width, height);
 			this.size = [width, height];
 
 			// Delete and recreate the framebuffer + renderbuffer

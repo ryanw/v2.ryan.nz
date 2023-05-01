@@ -1,8 +1,8 @@
-import { GBuffer, Scene } from "../lib";
-import { Size2, transform } from "../math";
-import { multiply, rotation, translation } from "../math/transform";
-import { Cube, CubeProgram } from "../programs/cube";
-import { GridProgram } from "../programs/grid";
+import { GBuffer, Scene } from '../lib';
+import { Size2, transform } from '../math';
+import { multiply, rotation, translation } from '../math/transform';
+import { Cube, CubeProgram } from '../programs/cube';
+import { GridProgram } from '../programs/grid';
 
 export class Cubic extends Scene {
 	cubes: Array<Cube> = [];
@@ -44,13 +44,13 @@ export class Cubic extends Scene {
 				),
 				color: [1.0, 0.0, 1.0, 1.0],
 			}
-		]
+		];
 	}
 
 	resize(width: number, height: number) {
 		this.size = [width, height];
 		this.gl.viewport(0, 0, width, height);
-		this.gbuffer.resize(width, height)
+		this.gbuffer.resize(width, height);
 	}
 
 	async draw() {
@@ -63,7 +63,7 @@ export class Cubic extends Scene {
 				this.gridProgram.draw(this.gbuffer);
 				this.drawToScreen(this.gbuffer);
 				resolve(void 0);
-			})
+			});
 		});
 	}
 }

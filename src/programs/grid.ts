@@ -1,8 +1,8 @@
-import { GBuffer, Mesh, Program } from "../lib";
+import { GBuffer, Mesh, Program } from '../lib';
 import vertSource from '../shaders/grid.vert.glsl';
 import fragSource from '../shaders/grid.frag.glsl';
-import { PHI, Point2, Point3, Size2, transform } from "../math";
-import { multiply, rotation, translation } from "../math/transform";
+import { PHI, Point2, Point3, Size2, transform } from '../math';
+import { multiply, rotation, translation } from '../math/transform';
 
 export type Triangle = [Point3, Point3, Point3];
 
@@ -137,4 +137,4 @@ const ICOSAHEDRON_TRIS: Array<[number, number, number]> = [
 	[6, 2, 10],
 	[8, 6, 7],
 	[9, 8, 1]
-]
+];

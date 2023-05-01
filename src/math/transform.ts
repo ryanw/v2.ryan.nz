@@ -4,7 +4,6 @@ import * as vec from './vectors';
 export type Columns = [Vector4, Vector4, Vector4, Vector4];
 
 export function identity(): Matrix4 {
-	// prettier-ignore
 	return [
 		1, 0, 0, 0,
 		0, 1, 0, 0,
@@ -14,7 +13,6 @@ export function identity(): Matrix4 {
 }
 
 export function columns(m: Matrix4): Columns {
-	// prettier-ignore
 	return [
 		m.slice(0, 4),
 		m.slice(4, 8),
@@ -24,7 +22,6 @@ export function columns(m: Matrix4): Columns {
 }
 
 export function translation(x: number, y: number, z: number): Matrix4 {
-	// prettier-ignore
 	return [
 		1, 0, 0, 0,
 		0, 1, 0, 0,
@@ -38,7 +35,6 @@ export function rotation(x: number, y: number, z: number): Matrix4 {
 	const [cy, sy] = [Math.cos(y), Math.sin(y)];
 	const [cz, sz] = [Math.cos(z), Math.sin(z)];
 
-	// prettier-ignore
 	const rotx: Matrix4 = [
 		1,  0,   0, 0,
 		0,  cx, sx, 0,
@@ -46,7 +42,6 @@ export function rotation(x: number, y: number, z: number): Matrix4 {
 		0,   0,  0, 1,
 	];
 
-	// prettier-ignore
 	const roty: Matrix4 = [
 		cy, 0, -sy, 0,
 		 0, 1,   0, 0,
@@ -54,7 +49,6 @@ export function rotation(x: number, y: number, z: number): Matrix4 {
 		 0, 0,   0, 1,
 	];
 
-	// prettier-ignore
 	const rotz: Matrix4 = [
 		 cz, sz, 0, 0,
 		-sz, cz, 0, 0,
@@ -66,7 +60,6 @@ export function rotation(x: number, y: number, z: number): Matrix4 {
 }
 
 export function scaling(x: number, y: number, z: number): Matrix4 {
-	// prettier-ignore
 	return [
 		x, 0, 0, 0,
 		0, y, 0, 0,
@@ -96,7 +89,6 @@ export function multiply(...mats: Array<Matrix4>): Matrix4 {
 	let result = mats[0];
 	for (let i = 1; i < mats.length; i++) {
 		const cols = columns(mats[i]);
-		// prettier-ignore
 		result = [
 			...multiplyVector(result, cols[0]),
 			...multiplyVector(result, cols[1]),
@@ -110,7 +102,6 @@ export function multiply(...mats: Array<Matrix4>): Matrix4 {
 export function multiplyVector(m: Matrix4, v: Vector4): Vector4 {
 	const [x, y, z, w] = columns(m).map((c, i) => vec.scale(c, v[i]));
 
-	// prettier-ignore
 	return [
 		x[0] + y[0] + z[0] + w[0],
 		x[1] + y[1] + z[1] + w[1],

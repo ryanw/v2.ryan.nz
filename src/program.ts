@@ -38,7 +38,7 @@ export class Program {
 	protected textures: TextureMap = {};
 
 	constructor(gl: WebGL2RenderingContext) {
-		console.debug("Creating WebGL Program");
+		console.debug('Creating WebGL Program');
 		this.gl = gl;
 	}
 
@@ -127,12 +127,12 @@ export class Program {
 	}
 
 	addAttribute(name: string, type: GLenum) {
-		console.debug("Adding attribute", name, type);
+		console.debug('Adding attribute', name, type);
 		this.attributes[name] = toAttribute(type);
 	}
 
 	removeAttribute(name: string) {
-		console.debug("Removing attribute", name);
+		console.debug('Removing attribute', name);
 		delete this.attributes[name];
 	}
 
@@ -152,12 +152,12 @@ export class Program {
 	}
 
 	addInstanceAttribute(name: string, type: GLenum, divisor: number = 1) {
-		console.debug("Adding instance attribute", name, type, divisor);
+		console.debug('Adding instance attribute', name, type, divisor);
 		this.instanceAttributes[name] = toAttribute(type, divisor);
 	}
 
 	removeInstanceAttribute(name: string) {
-		console.debug("Removing instance attribute", name);
+		console.debug('Removing instance attribute', name);
 		delete this.instanceAttributes[name];
 	}
 
@@ -175,7 +175,7 @@ export class Program {
 		let offset = 0;
 		if (attrib.type === gl.FLOAT && attrib.count === 16) {
 			const slotCount = 4;
-			let byteSize = 4 * attrib.count;
+			const byteSize = 4 * attrib.count;
 			for (let i = 0; i < slotCount; i++) {
 				const loc = attrib.location + i;
 				gl.enableVertexAttribArray(loc);
@@ -185,12 +185,12 @@ export class Program {
 			}
 		}
 		else {
-			console.error("Instance attribute not handled", name, attrib);
+			console.error('Instance attribute not handled', name, attrib);
 		}
 	}
 
 	addUniform(name: string, type: GLenum) {
-		console.debug("Adding uniform", name, type);
+		console.debug('Adding uniform', name, type);
 		this.uniforms[name] = { type };
 	}
 
@@ -204,29 +204,29 @@ export class Program {
 		}
 		const gl = this.gl;
 		switch (uniform.type) {
-			case gl.FLOAT_MAT4:
-				if (value instanceof Array) {
-					gl.uniformMatrix4fv(uniform.location, false, new Float32Array(value));
-				}
-				break;
-			default:
-				console.error("Unhandled uniform", name, uniform);
+		case gl.FLOAT_MAT4:
+			if (value instanceof Array) {
+				gl.uniformMatrix4fv(uniform.location, false, new Float32Array(value));
+			}
+			break;
+		default:
+			console.error('Unhandled uniform', name, uniform);
 		}
 	}
 
 	removeUniform(name: string) {
-		console.debug("Removing uniform", name);
+		console.debug('Removing uniform', name);
 		delete this.uniforms[name];
 	}
 
 	addTexture(name: string, unit?: number) {
 		unit ??= this.nextTextureUnit();
-		console.debug("Adding texture", name, unit);
+		console.debug('Adding texture', name, unit);
 		this.textures[name] = { unit };
 	}
 
 	removeTexture(name: string) {
-		console.debug("Removing texture", name);
+		console.debug('Removing texture', name);
 		delete this.textures[name];
 	}
 
@@ -255,7 +255,7 @@ export class Program {
 	}
 
 	addShader(type: GLenum, source: string) {
-		console.debug("Adding shader", { type, source });
+		console.debug('Adding shader', { type, source });
 		this.shaders[type] = source;
 	}
 
@@ -269,7 +269,7 @@ export class Program {
 
 	compileShader(glType: GLenum): WebGLShader {
 		if (!this.program) {
-			throw `Can't compile shader without a program`;
+			throw "Can't compile shader without a program";
 		}
 		const gl = this.gl;
 		const shader = gl.createShader(glType)!;
@@ -294,60 +294,60 @@ function toAttribute(glType: GLenum, divisor: number | null = null): typeof divi
 	let splitType = glType;
 	let count = 1;
 	switch (glType) {
-		case gl.FLOAT_VEC2:
-		case gl.FLOAT_VEC3:
-		case gl.FLOAT_VEC4:
-		case gl.FLOAT_MAT2:
-		case gl.FLOAT_MAT3:
-		case gl.FLOAT_MAT4:
-			splitType = gl.FLOAT;
-			break
+	case gl.FLOAT_VEC2:
+	case gl.FLOAT_VEC3:
+	case gl.FLOAT_VEC4:
+	case gl.FLOAT_MAT2:
+	case gl.FLOAT_MAT3:
+	case gl.FLOAT_MAT4:
+		splitType = gl.FLOAT;
+		break;
 
-		case gl.INT_VEC2:
-		case gl.INT_VEC3:
-		case gl.INT_VEC4:
-			splitType = gl.INT;
-			break
+	case gl.INT_VEC2:
+	case gl.INT_VEC3:
+	case gl.INT_VEC4:
+		splitType = gl.INT;
+		break;
 
-		case gl.UNSIGNED_INT_VEC2:
-		case gl.UNSIGNED_INT_VEC3:
-		case gl.UNSIGNED_INT_VEC4:
-			splitType = gl.UNSIGNED_INT;
-			break
+	case gl.UNSIGNED_INT_VEC2:
+	case gl.UNSIGNED_INT_VEC3:
+	case gl.UNSIGNED_INT_VEC4:
+		splitType = gl.UNSIGNED_INT;
+		break;
 	}
 	switch (glType) {
-		case gl.FLOAT_VEC2:
-		case gl.INT_VEC2:
-		case gl.UNSIGNED_INT_VEC2:
-		case gl.BOOL_VEC2:
-			count = 2;
-			break
+	case gl.FLOAT_VEC2:
+	case gl.INT_VEC2:
+	case gl.UNSIGNED_INT_VEC2:
+	case gl.BOOL_VEC2:
+		count = 2;
+		break;
 
-		case gl.FLOAT_VEC3:
-		case gl.INT_VEC3:
-		case gl.UNSIGNED_INT_VEC3:
-		case gl.BOOL_VEC3:
-			count = 3;
-			break;
+	case gl.FLOAT_VEC3:
+	case gl.INT_VEC3:
+	case gl.UNSIGNED_INT_VEC3:
+	case gl.BOOL_VEC3:
+		count = 3;
+		break;
 
-		case gl.FLOAT_VEC4:
-		case gl.INT_VEC4:
-		case gl.UNSIGNED_INT_VEC4:
-		case gl.BOOL_VEC4:
-			count = 4;
-			break;
+	case gl.FLOAT_VEC4:
+	case gl.INT_VEC4:
+	case gl.UNSIGNED_INT_VEC4:
+	case gl.BOOL_VEC4:
+		count = 4;
+		break;
 
-		case gl.FLOAT_MAT2:
-			count = 2 * 2;
-			break;
+	case gl.FLOAT_MAT2:
+		count = 2 * 2;
+		break;
 
-		case gl.FLOAT_MAT3:
-			count = 3 * 3;
-			break;
+	case gl.FLOAT_MAT3:
+		count = 3 * 3;
+		break;
 
-		case gl.FLOAT_MAT4:
-			count = 4 * 4;
-			break;
+	case gl.FLOAT_MAT4:
+		count = 4 * 4;
+		break;
 	}
 
 	if (divisor == null) {

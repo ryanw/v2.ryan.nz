@@ -18,7 +18,7 @@ export class Mesh<V extends Vertex<V>> {
 
 	toTypedArrays(): VertexArrays<V> {
 		const vertexCount = this.vertices.length;
-		const proto: Vertex<V> = this.vertices[0];
+		const proto = this.vertices[0];
 		const fields = Object.keys(proto) as Array<keyof V>;
 
 		const result = {} as VertexArrays<V>;

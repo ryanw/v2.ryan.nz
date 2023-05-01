@@ -3,14 +3,12 @@ import { transformPoint, multiply, rotation, multiplyVector, inverse, determinan
 
 describe('transform matrix', () => {
 	test('multiplying matrices together', () => {
-		// prettier-ignore
 		const mat1: Matrix4 = [
 			1, 0, 4, 0,
 			0, 1, 0, 2,
 			2, 0, 3, 0,
 			0, 7, 1, 2,
 		];
-		// prettier-ignore
 		const mat2: Matrix4 = [
 			3, 3, 5, 8,
 			7, 1, 4, 5,
@@ -19,7 +17,6 @@ describe('transform matrix', () => {
 		];
 
 		const result = multiply(mat1, mat2);
-		// prettier-ignore
 		const expected: Matrix4 = [
 			13, 59, 35, 22,
 			15, 36, 45, 12,
@@ -31,7 +28,6 @@ describe('transform matrix', () => {
 	});
 
 	test('transforming a point', () => {
-		// prettier-ignore
 		const mat: Matrix4 = [
 			1, 0, 4, 0,
 			0, 1, 0, 2,
@@ -48,7 +44,6 @@ describe('transform matrix', () => {
 	});
 
 	test('transforming a vector', () => {
-		// prettier-ignore
 		const mat: Matrix4 = [
 			1, 0, 4, 0,
 			0, 1, 0, 2,

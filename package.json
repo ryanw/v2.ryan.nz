@@ -8,6 +8,7 @@
     "server": "webpack serve",
     "build": "webpack",
     "docs": "typedoc src/lib.ts",
+    "lint": "eslint -c eslint.json src",
     "test": "jest src"
   },
   "version": "2.0.0",
