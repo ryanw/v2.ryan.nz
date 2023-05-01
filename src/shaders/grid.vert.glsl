@@ -12,11 +12,13 @@ uniform Camera camera;
 in vec3 position;
 in vec3 barycentric;
 in vec2 uv;
+in float id;
 
 out vec3 vPosition;
 out vec3 vSrcPosition;
 out vec2 vTexCoord;
 out vec3 vBarycentric;
+out float vID;
 
 
 void main() {
@@ -27,4 +29,5 @@ void main() {
 	vSrcPosition = position;
 	vTexCoord = uv;
 	vBarycentric = barycentric;
+	vID = id;
 }

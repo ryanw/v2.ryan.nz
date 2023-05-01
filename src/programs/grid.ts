@@ -10,6 +10,7 @@ export interface GridVertex {
 	position: Point3;
 	barycentric: Point3;
 	uv: Point2;
+	id: [number];
 }
 
 export class GridProgram extends Program {
@@ -17,6 +18,7 @@ export class GridProgram extends Program {
 	private positionBuffer!: WebGLBuffer;
 	private barycentricBuffer!: WebGLBuffer;
 	private uvBuffer!: WebGLBuffer;
+	private idBuffer!: WebGLBuffer;
 	private mesh: Mesh<GridVertex>;
 	private subdivisions: number = 0;
 
@@ -30,6 +32,7 @@ export class GridProgram extends Program {
 		this.addAttribute('position', gl.FLOAT_VEC3);
 		this.addAttribute('barycentric', gl.FLOAT_VEC3);
 		this.addAttribute('uv', gl.FLOAT_VEC2);
+		this.addAttribute('id', gl.FLOAT);
 
 		this.addUniform('camera.model', gl.FLOAT_MAT4);
 		this.addUniform('camera.view', gl.FLOAT_MAT4);
@@ -59,6 +62,15 @@ export class GridProgram extends Program {
 		subdivideMesh(this.mesh, 1);
 		const { position, barycentric, uv } = this.mesh.toTypedArrays();
 
+		const id = new Float32Array(this.mesh.vertices.length);
+		for (let i = 0; i < id.length; i += 3) {
+			const n = Math.random();
+			id[i] = n
+			id[i + 1] = n;
+			id[i + 2] = n;
+		}
+
+
 		this.positionBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, position, gl.STATIC_DRAW);
@@ -70,6 +82,10 @@ export class GridProgram extends Program {
 		this.uvBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
+
+		this.idBuffer = gl.createBuffer()!;
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.idBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, id, gl.STATIC_DRAW);
 	}
 
 	draw(target: GBuffer) {
@@ -82,6 +98,7 @@ export class GridProgram extends Program {
 		this.bindAttribute('position', this.positionBuffer);
 		this.bindAttribute('barycentric', this.barycentricBuffer);
 		this.bindAttribute('uv', this.uvBuffer);
+		this.bindAttribute('id', this.idBuffer);
 
 		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, target.framebuffer);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -189,9 +206,9 @@ function subdivideTriangle(tri: Triangle): SubdividedTriangles {
 	}
 
 	return indexes.map(([v0, v1, v2]) => [
-		{ position: vertices[v0], barycentric: [1.0, 0.0, 0.0], uv: [0.0, 0.0] },
-		{ position: vertices[v1], barycentric: [0.0, 1.0, 0.0], uv: [0.0, 1.0] },
-		{ position: vertices[v2], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0] },
+		{ position: vertices[v0], barycentric: [1.0, 0.0, 0.0], uv: [0.0, 0.0], id: [0] },
+		{ position: vertices[v1], barycentric: [0.0, 1.0, 0.0], uv: [0.0, 1.0], id: [0] },
+		{ position: vertices[v2], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0], id: [0] },
 	]) as SubdividedTriangles;
 }
 

@@ -8,6 +8,7 @@ in vec3 vPosition;
 in vec3 vSrcPosition;
 in vec3 vBarycentric;
 in vec2 vTexCoord;
+in float vID;
 
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outPosition;
@@ -28,14 +29,19 @@ float edgeDistance(vec3 barycentric, float thickness) {
 void main(void) {
 	vec4 lineColor = vec4(0.2, 0.7, 0.6, 1.0);
 	vec4 vertColor = vec4(1.0, 0.2, 0.1, 1.0);
-	vec4 faceColor = vec4(0.05, 0.11, 0.3, 1.0);
+	vec4 faceColor = vec4(0.05, 0.1, 0.3, 1.0);
 	float edge = edgeDistance(vBarycentric, 1.5, 0.2);
-	float thickEdge = edgeDistance(vBarycentric, 16.0, 0.0);
+	float thickEdge = edgeDistance(vBarycentric, 8.0, 0.0);
+
+	faceColor *= 1.0 - vID / 2.0;
+
+	if (vID < 1.0 / 30.0) {
+		faceColor = mix(vec4(1.0), faceColor, 0.5);
+	}
 	vec4 color = mix(lineColor, faceColor, edge);
 
 	// Add lights at intersections
-	float m = 8.0;
-	float d = pow(vBarycentric.r, m) + pow(vBarycentric.g, m) + pow(vBarycentric.b, m);
+	float d = pow(length(vBarycentric), 8.0);
 	color = mix(color, vertColor, d);
 
 	// Add glow
