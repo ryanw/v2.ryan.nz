@@ -5,6 +5,9 @@ import fragSource from '../shaders/compose.frag.glsl';
 
 const QUAD_VERTS = new Float32Array([-1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0]);
 
+/**
+ * Combines a GBuffer's textures into a final image
+ */
 export class ComposeProgram extends Program {
 	private vertexBuffer: WebGLBuffer;
 

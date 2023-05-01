@@ -25,6 +25,10 @@ function resizeTexture(gl: WebGL2RenderingContext, texture: WebGLTexture, unit: 
 	gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + unit, gl.TEXTURE_2D, texture, 0);
 }
 
+/**
+ * Geometry Buffer. Contains multiple render textures, each storing different information about the rendered scene.
+ * The GBuffer is combined by the {@link programs.ComposeProgram} to form the final displayed image
+ */
 export class GBuffer {
 	gl: WebGL2RenderingContext;
 	size: Size2 = [1, 1];
