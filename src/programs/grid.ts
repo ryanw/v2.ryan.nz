@@ -1,10 +1,10 @@
 import { GBuffer, Mesh, Program } from '../lib';
 import vertSource from '../shaders/grid.vert.glsl';
 import fragSource from '../shaders/grid.frag.glsl';
-import { PHI, Point2, Point3, Size2, transform } from '../math';
+import { PHI, Point, Point2, Point3, Size2, transform } from '../math';
+import * as vectors from '../math/vectors';
 import { multiply, rotation, translation } from '../math/transform';
-
-export type Triangle = [Point3, Point3, Point3];
+import { normalize } from '../math/vectors';
 
 export interface GridVertex {
 	position: Point3;
@@ -17,6 +17,7 @@ export class GridProgram extends Program {
 	private positionBuffer: WebGLBuffer;
 	private barycentricBuffer: WebGLBuffer;
 	private uvBuffer: WebGLBuffer;
+	private mesh: Mesh<GridVertex>;
 
 	constructor(gl: WebGL2RenderingContext, width: number, height: number) {
 		super(gl);
@@ -39,17 +40,16 @@ export class GridProgram extends Program {
 			{ position: [0.0, 0.0, 0.0], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0] },
 		];
 
-		const vertices = ICOSAHEDRON_TRIS.map((tri) => {
-			return tri.map<GridVertex>((v, i) => {
-				return {
-					position: ICOSAHEDRON_VERTICES[v],
-					barycentric: baseTriangle[i % 3].barycentric,
-					uv: baseTriangle[i % 3].uv,
-				} as GridVertex;
-			});
-		}).flat();
-		const mesh = new Mesh<GridVertex>(vertices);
-		const { position, barycentric, uv } = mesh.toTypedArrays();
+		const vertices = ICOSAHEDRON_TRIS.map((tri) =>
+			tri.map((v, i) => ({
+				position: normalize(ICOSAHEDRON_VERTICES[v]),
+				barycentric: baseTriangle[i % 3].barycentric,
+				uv: baseTriangle[i % 3].uv,
+			} as GridVertex))
+		).flat();
+		this.mesh = new Mesh<GridVertex>(vertices);
+		subdivideMesh(this.mesh, 2);
+		const { position, barycentric, uv } = this.mesh.toTypedArrays();
 
 		this.positionBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -91,13 +91,13 @@ export class GridProgram extends Program {
 		this.bindUniform('camera.view', transform.identity());
 		this.bindUniform('camera.model',
 			multiply(
-				translation(0.0, 0.0, -4.0 + Math.sin(t) * 0.5),
-				rotation(0.0, t, 0.0),
+				translation(0.0, 0.0, -3.0 + Math.sin(t) * 0.5),
+				rotation(0.0, t, t / 1.23),
 			)
 		);
 		this.bindUniform('camera.projection', projection);
 
-		gl.drawArrays(gl.TRIANGLES, 0, 20 * 3);
+		gl.drawArrays(gl.TRIANGLES, 0, this.mesh.vertices.length);
 	}
 }
 
@@ -138,3 +138,52 @@ const ICOSAHEDRON_TRIS: Array<[number, number, number]> = [
 	[8, 6, 7],
 	[9, 8, 1]
 ];
+
+
+type Triangle = [GridVertex, GridVertex, GridVertex];
+type SubdividedTriangles = [Triangle, Triangle, Triangle, Triangle];
+
+function subdivideMesh({ vertices }: Mesh<GridVertex>, count: number = 1) {
+	for (let i = 0; i < count; i++) {
+		const vertexCount = vertices.length;
+		for (let j = 0; j < vertexCount; j += 3) {
+			const v0 = vertices[j];
+			const v1 = vertices[j + 1];
+			const v2 = vertices[j + 2];
+			const [t0, ...tris] = subdivideTriangle([v0, v1, v2]);
+
+			// Replace current tri with the first one
+			vertices.splice(j, 3, ...t0);
+
+			// Append the last 3 to the mesh
+			vertices.push(...tris.flat());
+		}
+	}
+}
+
+
+function subdivideTriangle(tri: Triangle): SubdividedTriangles {
+	const vertices = tri.map(({ position }) => [...position]);
+	const indexes = [
+		[0, 3, 5],
+		[3, 1, 4],
+		[5, 3, 4],
+		[5, 4, 2]
+	];
+
+	for (let i = 0; i < 3; i++) {
+		const v0 = [...tri[i].position] as Point3;
+		const v1 = [...tri[(i + 1) % 3].position] as Point3;
+		vertices.push(midway(v0, v1));
+	}
+
+	return indexes.map(([v0, v1, v2]) => [
+		{ position: vertices[v0], barycentric: [1.0, 0.0, 0.0], uv: [0.0, 0.0] },
+		{ position: vertices[v1], barycentric: [0.0, 1.0, 0.0], uv: [0.0, 1.0] },
+		{ position: vertices[v2], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0] },
+	]) as SubdividedTriangles;
+}
+
+function midway(p0: Point3, p1: Point3): Point3 {
+	return normalize(vectors.scale(vectors.add(p0, p1), 0.5));
+}
