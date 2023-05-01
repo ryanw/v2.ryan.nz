@@ -24,11 +24,21 @@ float edgeDistance(vec3 barycentric, float thickness) {
 
 void main(void) {
 	vec4 lineColor = vec4(0.224, 0.722, 1.000, 1.0);
+	vec4 vertColor = vec4(1.000, 0.244, 0.224, 1.0);
 	vec4 faceColor = vec4(0.051, 0.133, 0.286, 1.0);
 	float edge = edgeDistance(vBarycentric, 2.0);
 	float thickEdge = edgeDistance(vBarycentric, 16.0);
 	vec4 color = mix(lineColor, faceColor, edge);
-	outAlbedo = mix(color + lineColor * 0.2, color, thickEdge);
+
+	// Add lights at intersections
+	float m = 8.0;
+	float d = pow(vBarycentric.r, m) + pow(vBarycentric.g, m) + pow(vBarycentric.b, m);
+	color = mix(color, vertColor, d);
+
+	// Add glow
+	color = mix(color + lineColor * 0.2, color, thickEdge);
+
+	outAlbedo = color;
 	outPosition = vec4(vPosition, 1.0);
 	outNormal = vec4(vBarycentric + vTexCoord.rgg, 1.0);
 	outSpecular = vec4(lineColor.rgb * 2.0, 1.0 - thickEdge);
