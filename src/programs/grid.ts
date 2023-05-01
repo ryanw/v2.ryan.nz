@@ -3,7 +3,7 @@ import vertSource from '../shaders/grid.vert.glsl';
 import fragSource from '../shaders/grid.frag.glsl';
 import { PHI, Point, Point2, Point3, Size2, transform } from '../math';
 import * as vectors from '../math/vectors';
-import { multiply, rotation, translation } from '../math/transform';
+import { multiply, rotation, scaling, translation } from '../math/transform';
 import { normalize } from '../math/vectors';
 
 export interface GridVertex {
@@ -14,10 +14,11 @@ export interface GridVertex {
 
 export class GridProgram extends Program {
 	private size: Size2;
-	private positionBuffer: WebGLBuffer;
-	private barycentricBuffer: WebGLBuffer;
-	private uvBuffer: WebGLBuffer;
+	private positionBuffer!: WebGLBuffer;
+	private barycentricBuffer!: WebGLBuffer;
+	private uvBuffer!: WebGLBuffer;
 	private mesh: Mesh<GridVertex>;
+	private subdivisions: number = 0;
 
 	constructor(gl: WebGL2RenderingContext, width: number, height: number) {
 		super(gl);
@@ -48,7 +49,14 @@ export class GridProgram extends Program {
 			} as GridVertex))
 		).flat();
 		this.mesh = new Mesh<GridVertex>(vertices);
-		subdivideMesh(this.mesh, 2);
+		this.compile();
+		this.rebuildMesh();
+	}
+
+	rebuildMesh() {
+		const gl = this.gl;
+		this.subdivisions += 1;
+		subdivideMesh(this.mesh, 1);
 		const { position, barycentric, uv } = this.mesh.toTypedArrays();
 
 		this.positionBuffer = gl.createBuffer()!;
@@ -62,8 +70,6 @@ export class GridProgram extends Program {
 		this.uvBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
-
-		this.compile();
 	}
 
 	draw(target: GBuffer) {
@@ -89,10 +95,15 @@ export class GridProgram extends Program {
 		const t = performance.now() / 1000.0;
 		const projection = transform.perspective(target.aspect, 45.0, 1.0, 1000.0);
 		this.bindUniform('camera.view', transform.identity());
+		const s = Math.min(8.0, t);
+		if (t < 5.0 && t > this.subdivisions) {
+			this.rebuildMesh();
+		}
 		this.bindUniform('camera.model',
 			multiply(
-				translation(0.0, 0.0, -3.0 + Math.sin(t) * 0.5),
-				rotation(0.0, t, t / 1.23),
+				translation(0.0, -s, -4.0),
+				rotation(0.0, t / 4.0, 0.0),
+				scaling(s),
 			)
 		);
 		this.bindUniform('camera.projection', projection);

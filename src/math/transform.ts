@@ -59,7 +59,7 @@ export function rotation(x: number, y: number, z: number): Matrix4 {
 	return multiply(rotz, roty, rotx);
 }
 
-export function scaling(x: number, y: number, z: number): Matrix4 {
+export function scaling(x: number, y: number = x, z: number = x): Matrix4 {
 	return [
 		x, 0, 0, 0,
 		0, y, 0, 0,
