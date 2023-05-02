@@ -56,9 +56,36 @@ export class GridProgram extends Program {
 		this.rebuildMesh();
 	}
 
+	clipMesh(offset: number = 0.0) {
+		const gl = this.gl;
+		const vertices = this.mesh.vertices;
+		const newVertices = [];
+		for (let i = 0; i < vertices.length; i += 3) {
+			const v0 = vertices[i];
+			const v1 = vertices[i + 1];
+			const v2 = vertices[i + 2];
+
+			if (v0.position[1] < offset && v1.position[1] < offset && v2.position[1] < offset) {
+				continue;
+			}
+
+			newVertices.push(v0, v1, v2);
+		}
+		this.mesh.vertices = newVertices;
+	}
+
 	rebuildMesh() {
 		const gl = this.gl;
 		this.subdivisions += 1;
+		if (this.subdivisions == 3) {
+			this.clipMesh(0.1);
+		}
+		if (this.subdivisions == 4) {
+			this.clipMesh(0.6);
+		}
+		if (this.subdivisions == 5) {
+			this.clipMesh(0.7);
+		}
 		subdivideMesh(this.mesh, 1);
 		const { position, barycentric, uv } = this.mesh.toTypedArrays();
 
@@ -112,14 +139,16 @@ export class GridProgram extends Program {
 		const t = performance.now() / 1000.0;
 		const projection = transform.perspective(target.aspect, 45.0, 1.0, 1000.0);
 		this.bindUniform('camera.view', transform.identity());
-		const s = Math.min(8.0, t);
-		if (t < 5.0 && t > this.subdivisions) {
+
+		const mul = 2.0;
+		const s = Math.min(8.0, t / mul);
+		if (t < 6.0 * mul && t > this.subdivisions * mul) {
 			this.rebuildMesh();
 		}
 		this.bindUniform('camera.model',
 			multiply(
 				translation(0.0, -s, -4.0),
-				rotation(0.0, t / 4.0, 0.0),
+				rotation(0.0, t / 8.0, 0.0),
 				scaling(s),
 			)
 		);
