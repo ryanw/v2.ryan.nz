@@ -27,5 +27,8 @@ export type Matrix4 = [
 	number, number, number, number,
 	number, number, number, number,
 ];
+
+export type Plane = [Point3, Vector3];
+
 import * as transform from './transform';
 export { transform };

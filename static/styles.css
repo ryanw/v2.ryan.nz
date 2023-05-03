@@ -29,18 +29,49 @@ main > canvas {
 	z-index: -1;
 }
 
+main > h1 {
+	display: none;
+}
+
 footer {
 	position: absolute;
 	bottom: 0;
 	left: 0;
 	right: 0;
-	background: rgba(0, 0, 0, 0.7);
 }
 
-a {
-	color: inherit;
-	text-decoration: none;
+
+footer ul {
+	box-sizing: border-box;
+	display: flex;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	padding: 0 0.2em;
 }
-a:hover {
-	text-decoration: underline;
+footer li {
+	flex: 1;
+	text-align: center;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	padding: 0.4em 0.2em;
+}
+footer li > a {
+	display: block;
+	padding: 1em;
+	color: inherit;
+	border-radius: 3px;
+	text-decoration: none;
+	background: rgba(0, 0, 0, 0.5);
+	transition: 200ms all;
+	opacity: 0.7;
+}
+footer li > a:hover {
+	border-radius: 5px;
+	background: rgba(0, 0, 0, 0.8);
+	opacity: 0.9;
+}
+
+footer li {
 }

@@ -1,7 +1,7 @@
-import { GBuffer, Mesh, Program } from '../lib';
+import { Camera, GBuffer, Mesh, Program } from '../lib';
 import vertSource from '../shaders/grid.vert.glsl';
 import fragSource from '../shaders/grid.frag.glsl';
-import { PHI, Point, Point2, Point3, Size2, transform } from '../math';
+import { PHI, Point2, Point3, transform } from '../math';
 import * as vectors from '../math/vectors';
 import { multiply, rotation, scaling, translation } from '../math/transform';
 import { normalize } from '../math/vectors';
@@ -14,17 +14,14 @@ export interface GridVertex {
 }
 
 export class GridProgram extends Program {
-	private size: Size2;
 	private positionBuffer!: WebGLBuffer;
 	private barycentricBuffer!: WebGLBuffer;
 	private uvBuffer!: WebGLBuffer;
 	private idBuffer!: WebGLBuffer;
 	private mesh: Mesh<GridVertex>;
-	private subdivisions: number = 0;
 
-	constructor(gl: WebGL2RenderingContext, width: number, height: number) {
+	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
-		this.size = [width, height];
 
 		this.addVertexShader(vertSource);
 		this.addFragmentShader(fragSource);
@@ -51,13 +48,14 @@ export class GridProgram extends Program {
 				uv: baseTriangle[i % 3].uv,
 			} as GridVertex))
 		).flat();
-		this.mesh = new Mesh<GridVertex>(vertices);
 		this.compile();
+
+		this.mesh = new Mesh<GridVertex>(vertices);
+		subdivideMesh(this.mesh, 2);
 		this.rebuildMesh();
 	}
 
 	clipMesh(offset: number = 0.0) {
-		const gl = this.gl;
 		const vertices = this.mesh.vertices;
 		const newVertices = [];
 		for (let i = 0; i < vertices.length; i += 3) {
@@ -76,17 +74,6 @@ export class GridProgram extends Program {
 
 	rebuildMesh() {
 		const gl = this.gl;
-		this.subdivisions += 1;
-		if (this.subdivisions == 3) {
-			this.clipMesh(0.1);
-		}
-		if (this.subdivisions == 4) {
-			this.clipMesh(0.6);
-		}
-		if (this.subdivisions == 5) {
-			this.clipMesh(0.7);
-		}
-		subdivideMesh(this.mesh, 1);
 		const { position, barycentric, uv } = this.mesh.toTypedArrays();
 
 		const id = new Float32Array(this.mesh.vertices.length);
@@ -115,7 +102,7 @@ export class GridProgram extends Program {
 		gl.bufferData(gl.ARRAY_BUFFER, id, gl.STATIC_DRAW);
 	}
 
-	draw(target: GBuffer) {
+	draw(target: GBuffer, camera: Camera) {
 		const gl = this.gl;
 		this.use();
 
@@ -127,7 +114,7 @@ export class GridProgram extends Program {
 		this.bindAttribute('uv', this.uvBuffer);
 		this.bindAttribute('id', this.idBuffer);
 
-		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, target.framebuffer);
+		target.framebuffer.bind();
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.clearBufferfv(gl.COLOR, 0, [0.1, 0.0, 0.0, 0.0]);
 		gl.clearBufferfv(gl.COLOR, 1, [0.1, 0.1, 0.0, 0.0]);
@@ -137,22 +124,15 @@ export class GridProgram extends Program {
 		gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
 
 		const t = performance.now() / 1000.0;
-		const projection = transform.perspective(target.aspect, 45.0, 1.0, 1000.0);
-		this.bindUniform('camera.view', transform.identity());
-
-		const mul = 2.0;
-		const s = Math.min(8.0, t / mul);
-		if (t < 6.0 * mul && t > this.subdivisions * mul) {
-			this.rebuildMesh();
-		}
+		this.bindUniform('camera.view', camera.view());
+		this.bindUniform('camera.projection', camera.projection(target.aspect));
 		this.bindUniform('camera.model',
 			multiply(
-				translation(0.0, -s, -4.0),
-				rotation(0.0, t / 8.0, 0.0),
-				scaling(s),
+				translation(0.0, 0.0, 0.0),
+				rotation(0.0, 0.0, 0.0),
+				scaling(1.0),
 			)
 		);
-		this.bindUniform('camera.projection', projection);
 
 		gl.drawArrays(gl.TRIANGLES, 0, this.mesh.vertices.length);
 	}

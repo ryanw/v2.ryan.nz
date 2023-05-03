@@ -38,7 +38,7 @@ export class Program {
 	protected textures: TextureMap = {};
 
 	constructor(gl: WebGL2RenderingContext) {
-		console.debug('Creating WebGL Program');
+		console.debug('Creating WebGL Program: ', this.name);
 		this.gl = gl;
 	}
 

@@ -52,24 +52,24 @@ export function rotation(x: number, y: number, z: number): Matrix4 {
 	const [cz, sz] = [Math.cos(z), Math.sin(z)];
 
 	const rotx: Matrix4 = [
-		1,  0,   0, 0,
-		0,  cx, sx, 0,
+		1, 0, 0, 0,
+		0, cx, sx, 0,
 		0, -sx, cx, 0,
-		0,   0,  0, 1,
+		0, 0, 0, 1,
 	];
 
 	const roty: Matrix4 = [
 		cy, 0, -sy, 0,
-		 0, 1,   0, 0,
-		sy, 0,  cy, 0,
-		 0, 0,   0, 1,
+		0, 1, 0, 0,
+		sy, 0, cy, 0,
+		0, 0, 0, 1,
 	];
 
 	const rotz: Matrix4 = [
-		 cz, sz, 0, 0,
+		cz, sz, 0, 0,
 		-sz, cz, 0, 0,
-		  0,  0, 1, 0,
-		  0,  0, 0, 1,
+		0, 0, 1, 0,
+		0, 0, 0, 1,
 	];
 
 	return multiply(rotz, roty, rotx);

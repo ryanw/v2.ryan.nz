@@ -3,7 +3,7 @@ import { ComposeProgram } from './programs/compose';
 
 export abstract class Scene {
 	protected gl: WebGL2RenderingContext;
-	private composeProgram: ComposeProgram;
+	protected composeProgram: ComposeProgram;
 
 	constructor(gl: WebGL2RenderingContext) {
 		this.gl = gl;

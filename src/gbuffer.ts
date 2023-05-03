@@ -1,3 +1,4 @@
+import { Framebuffer } from './framebuffer';
 import { Size2 } from './math';
 
 function generateTexture(gl: WebGL2RenderingContext, unit: number, format: GLenum = gl.RGBA): WebGLTexture {
@@ -43,8 +44,7 @@ function resizeTexture(gl: WebGL2RenderingContext, texture: WebGLTexture, unit: 
 export class GBuffer {
 	gl: WebGL2RenderingContext;
 	size: Size2 = [1, 1];
-	framebuffer: WebGLFramebuffer;
-	depthbuffer: WebGLRenderbuffer;
+	framebuffer: Framebuffer;
 	albedo: WebGLTexture;
 	position: WebGLTexture;
 	normal: WebGLTexture;
@@ -53,12 +53,7 @@ export class GBuffer {
 	constructor(gl: WebGL2RenderingContext) {
 		this.gl = gl;
 
-		this.framebuffer = gl.createFramebuffer()!;
-		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
-		this.depthbuffer = gl.createRenderbuffer()!;
-		gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthbuffer);
-		gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthbuffer);
-		
+		this.framebuffer = new Framebuffer(gl);
 		this.albedo = generateTexture(gl, 0);
 		this.position = generateTexture(gl, 1);
 		this.normal = generateTexture(gl, 2);
@@ -75,21 +70,7 @@ export class GBuffer {
 			console.debug('Resize GBuffer', width, height);
 			this.size = [width, height];
 
-			// Delete and recreate the framebuffer + renderbuffer
-			gl.deleteFramebuffer(this.framebuffer);
-			gl.deleteRenderbuffer(this.depthbuffer);
-
-			this.framebuffer = gl.createFramebuffer()!;
-			this.depthbuffer = gl.createRenderbuffer()!;
-
-			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
-			gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthbuffer);
-
-			// Reattach new renderbuffer to the new framebuffer
-			gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthbuffer);
-
-			// Resize depth texture
-			gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+			this.framebuffer.resize(width, height);
 
 			// Resize all the gbuffer textures
 			resizeTexture(gl, this.albedo, 0, width, height);

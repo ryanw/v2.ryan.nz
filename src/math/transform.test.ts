@@ -20,8 +20,8 @@ describe('transform matrix', () => {
 		const expected: Matrix4 = [
 			13, 59, 35, 22,
 			15, 36, 45, 12,
-			 6, 10, 15,  8,
-			 3, 12, 13, 12,
+			6, 10, 15, 8,
+			3, 12, 13, 12,
 		];
 
 		expect(result).toEqual(expected);
