@@ -1,5 +1,5 @@
 import { Matrix4, Point3, Vector4 } from '.';
-import { transformPoint, multiply, rotation, multiplyVector, inverse, determinant } from './transform';
+import { transformPoint, multiply, rotation, multiplyVector, inverse, determinant, matrixToRows } from './transform';
 
 describe('transform matrix', () => {
 	test('multiplying matrices together', () => {
@@ -118,5 +118,26 @@ describe('transform matrix', () => {
 		];
 		const det = determinant(mat);
 		expect(det).toBe(356);
+	});
+
+	test('converting a matrix to row vectors', () => {
+		const mat: Matrix4 = [
+			3, 7, 2, 3,
+			3, 1, 3, 5,
+			5, 4, 2, 0,
+			8, 5, 1, 1,
+		];
+		const expected = [
+			[3, 3, 5, 8],
+			[7, 1, 4, 5],
+			[2, 3, 2, 1],
+			[3, 5, 0, 1],
+		];
+		const result = matrixToRows(mat);
+		for (let i = 0; i < 4; i++) {
+			for (let j = 0; j < 4; j++) {
+				expect(result[i][j]).toBeCloseTo(expected[i][j], 0.0001);
+			}
+		}
 	});
 });

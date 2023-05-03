@@ -2,6 +2,7 @@ import { Matrix4, Point3, Point4, Vector4 } from '.';
 import * as vec from './vectors';
 
 export type Columns = [Vector4, Vector4, Vector4, Vector4];
+export type Rows = [Vector4, Vector4, Vector4, Vector4];
 
 export function identity(): Matrix4 {
 	return [
@@ -19,6 +20,21 @@ export function columns(m: Matrix4): Columns {
 		m.slice(8, 12),
 		m.slice(12, 16),
 	] as Columns;
+}
+
+export function matrixToRows(m: Matrix4): Rows {
+	const cols = columns(m);
+	const rows = [...cols];
+	for (let i = 0; i < rows.length; i++) {
+		rows[i] = [
+			cols[0][i],
+			cols[1][i],
+			cols[2][i],
+			cols[3][i],
+		]
+	}
+
+	return rows as Rows;
 }
 
 export function translation(x: number, y: number, z: number): Matrix4 {
