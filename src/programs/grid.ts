@@ -102,8 +102,9 @@ export class GridProgram extends Program {
 		gl.bufferData(gl.ARRAY_BUFFER, id, gl.STATIC_DRAW);
 	}
 
-	draw(target: GBuffer, camera: Camera) {
+	draw(target: GBuffer, camera: Camera, clear: boolean = false) {
 		const gl = this.gl;
+		gl.disable(gl.BLEND);
 		this.use();
 
 		gl.enable(gl.DEPTH_TEST);
@@ -115,11 +116,13 @@ export class GridProgram extends Program {
 		this.bindAttribute('id', this.idBuffer);
 
 		target.framebuffer.bind();
-		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		gl.clearBufferfv(gl.COLOR, 0, [0.1, 0.0, 0.0, 0.0]);
-		gl.clearBufferfv(gl.COLOR, 1, [0.1, 0.1, 0.0, 0.0]);
-		gl.clearBufferfv(gl.COLOR, 2, [0.0, 0.1, 0.0, 0.0]);
-		gl.clearBufferfv(gl.COLOR, 3, [0.0, 0.1, 0.1, 0.0]);
+		if (clear) {
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+			gl.clearBufferfv(gl.COLOR, 0, [0.1, 0.0, 0.0, 0.0]);
+			gl.clearBufferfv(gl.COLOR, 1, [0.1, 0.1, 0.0, 0.0]);
+			gl.clearBufferfv(gl.COLOR, 2, [0.0, 0.1, 0.0, 0.0]);
+			gl.clearBufferfv(gl.COLOR, 3, [0.0, 0.1, 0.1, 0.0]);
+		}
 
 		gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
 
