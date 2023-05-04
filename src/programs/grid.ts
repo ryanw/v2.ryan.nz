@@ -84,7 +84,6 @@ export class GridProgram extends Program {
 			id[i + 2] = n;
 		}
 
-
 		this.positionBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, position, gl.STATIC_DRAW);
@@ -131,8 +130,8 @@ export class GridProgram extends Program {
 		this.bindUniform('camera.projection', camera.projection(target.aspect));
 		this.bindUniform('camera.model',
 			multiply(
-				translation(0.0, 0.0, 0.0),
-				rotation(0.0, 0.0, 0.0),
+				translation(Math.sin(t), 0.0, Math.cos(t) + 0.5),
+				rotation(0.0, t / -2.0, 0.0),
 				scaling(1.0),
 			)
 		);

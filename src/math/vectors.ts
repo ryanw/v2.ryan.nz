@@ -34,3 +34,10 @@ export function reflect(p: Point3, [origin, normal]: Plane): Point3 {
 	const s = dot(offset, normalize(normal)) * 2.0;
 	return subtract(p, scale(normal, s));
 }
+
+export function cross(v0: Vector3, v1: Vector3): Vector3 {
+	const x = v0[1] * v1[2] - v0[2] * v1[1];
+	const y = v0[2] * v1[0] - v0[0] * v1[2];
+	const z = v0[0] * v1[1] - v0[1] * v1[0];
+	return [x, y, z];
+}

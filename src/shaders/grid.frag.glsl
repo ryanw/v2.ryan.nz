@@ -33,7 +33,7 @@ void main(void) {
 	float edge = edgeDistance(vBarycentric, 1.5, 0.2);
 	float thickEdge = edgeDistance(vBarycentric, 8.0, 0.0);
 
-	faceColor *= 1.0 - vID / 2.0;
+	faceColor.rgb *= 1.0 - vID / 2.0;
 
 	if (vID < 1.0 / 30.0) {
 		faceColor = mix(vec4(1.0), faceColor, 0.5);

@@ -1,6 +1,6 @@
 import { Matrix4, Plane, Point3, Vector3 } from "./math";
-import { inverse, perspective, translation } from "./math/transform";
-import { add, dot, normalize, reflect, scale, subtract } from "./math/vectors";
+import { inverse, multiply, perspective, rotation, scaling, translation } from "./math/transform";
+import { add, cross, dot, normalize, reflect, scale, subtract } from "./math/vectors";
 
 /**
  * A camera in 3D space */
@@ -8,6 +8,7 @@ export class Camera {
 	position: Point3 = [0.0, 0.0, 0.0];
 	forward: Vector3 = [0.0, 0.0, -1.0];
 	up: Vector3 = [0.0, 1.0, 0.0];
+	scale: Vector3 = [1.0, 1.0, 1.0];
 
 	/**
 	 * Reflect the camera in a mirror
@@ -19,6 +20,7 @@ export class Camera {
 		reflection.position = reflect(this.position, plane);
 		reflection.forward = reflect(this.forward, [[0, 0, 0], plane[1]]);
 		reflection.up = reflect(this.up, [[0, 0, 0], plane[1]]);
+		reflection.scale = [1.0, -1.0, 1.0];
 		return reflection;
 	}
 
@@ -30,8 +32,25 @@ export class Camera {
 		this.position = add(this.position, direction);
 	}
 
+	/**
+	 * Return the camera's rotation in Euler angles
+	 * @returns number[] Values for [pitch, yaw, roll]
+	 */
+	eulerRotation(): [number, number, number] {
+		const { up, forward } = this;
+		const right = cross(up, forward);
+		const pitch = Math.asin(forward[1])
+		const yaw = Math.atan2(forward[0], forward[2])
+		const roll = Math.atan2(right[1], up[1])
+		return [pitch, yaw, roll];
+	}
+
 	view(): Matrix4 {
-		return inverse(translation(...this.position))!;
+		const rot = rotation(...this.eulerRotation());
+		const tra = translation(...this.position);
+		const sca = scaling(...this.scale);
+		const view = multiply(sca, multiply(rot, tra));
+		return inverse(view)!;
 	}
 
 	projection(aspect: number = 1.0): Matrix4 {

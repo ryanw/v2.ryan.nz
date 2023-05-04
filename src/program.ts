@@ -200,13 +200,24 @@ export class Program {
 			throw `Unknown uniform: ${name}`;
 		}
 		if (uniform.location == null) {
-			throw `Couldn't bind uniform: ${name}`;
+			console.error(`Couldn't bind uniform: ${name}`);
+			return;
 		}
 		const gl = this.gl;
 		switch (uniform.type) {
 		case gl.FLOAT_MAT4:
 			if (value instanceof Array) {
 				gl.uniformMatrix4fv(uniform.location, false, new Float32Array(value));
+			}
+			break;
+		case gl.INT:
+			if (typeof value === 'number') {
+				gl.uniform1i(uniform.location, value | 0);
+			}
+			break;
+		case gl.FLOAT:
+			if (typeof value === 'number') {
+				gl.uniform1f(uniform.location, value | 0);
 			}
 			break;
 		default:
@@ -252,6 +263,9 @@ export class Program {
 		gl.activeTexture(gl.TEXTURE0 + texture.unit);
 		gl.bindTexture(gl.TEXTURE_2D, buffer);
 		gl.uniform1i(texture.location, texture.unit);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	}
 
 	addShader(type: GLenum, source: string) {
