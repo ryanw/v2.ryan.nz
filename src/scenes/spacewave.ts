@@ -37,6 +37,7 @@ export class Spacewave extends Scene {
 	camera = new Camera();
 	private backbuffer: Framebuffer;
 	private gbuffer: GBuffer;
+	private skyOutput: WebGLTexture;
 	private mainOutput: WebGLTexture;
 	private mirrorOutput: WebGLTexture;
 	private mirrorMask: WebGLTexture;
@@ -59,9 +60,11 @@ export class Spacewave extends Scene {
 		this.blurProg = new BlurProgram(gl);
 		this.planeProg = new PlaneProgram(gl);
 
+		this.skyOutput = gl.createTexture()!;
 		this.mainOutput = gl.createTexture()!;
 		this.mirrorOutput = gl.createTexture()!;
 		this.mirrorMask = gl.createTexture()!;
+		resizeTexture(gl, this.skyOutput, 32, 32);
 		resizeTexture(gl, this.mainOutput, 32, 32);
 		resizeTexture(gl, this.mirrorOutput, 32, 32);
 
@@ -84,6 +87,7 @@ export class Spacewave extends Scene {
 		this.size = [width, height];
 		resizeTexture(gl, this.mirrorMask, width, height);
 		resizeTexture(gl, this.mainOutput, width, height);
+		resizeTexture(gl, this.skyOutput, width, height);
 		resizeTexture(gl, this.mirrorOutput, width, height);
 		gl.viewport(0, 0, width, height);
 		this.gbuffer.resize(width, height);
@@ -114,8 +118,6 @@ export class Spacewave extends Scene {
 
 	drawScene(output: WebGLTexture, camera: Camera) {
 		const gbuffer = this.gbuffer;
-		gbuffer.clear();
-		this.drawSky(gbuffer, camera);
 		this.drawAtmosphere(gbuffer, camera);
 		this.drawGeometry(gbuffer, camera);
 		this.composeGBuffer(output, gbuffer);
@@ -136,19 +138,19 @@ export class Spacewave extends Scene {
 		];
 		const { camera, mainOutput, mirrorOutput, mirrorMask } = this;
 		const mirrorCamera = camera.reflect(mirrorPlane);
+		this.gbuffer.clear();
 		this.drawScene(mainOutput, camera);
+
+		// Draw sky to a separate texture
+		this.gbuffer.bind();
+		this.gbuffer.clear();
+		this.drawSky(this.gbuffer, camera);
+		this.composeGBuffer(this.skyOutput, this.gbuffer);
+
+		// Leave sky in gbuffer to reuse it for the mirror reflection
 		this.drawScene(mirrorOutput, mirrorCamera);
 
-		this.blurTexture(mirrorOutput);
 		this.drawPlane(mirrorMask, mirrorPlane, camera)
-		this.blurTexture(mirrorMask);
-		this.blendTextures(mirrorOutput, mainOutput, mirrorMask);
-	}
-
-	blurTexture(texture: WebGLTexture) {
-	}
-
-	blendTextures(back: WebGLTexture, front: WebGLTexture, mask: WebGLTexture) {
 	}
 
 	composeGBuffer(output: WebGLTexture, buffer: GBuffer) {
@@ -163,6 +165,7 @@ export class Spacewave extends Scene {
 			requestAnimationFrame(() => {
 				this.updateViewport();
 				this.drawFrame();
+				this.quadProg.drawTexture(this.skyOutput);
 				this.quadProg.drawTexture(this.mirrorMask);
 				this.blurProg.drawTexture(this.mirrorOutput, this.mirrorMask);
 				this.quadProg.drawTexture(this.mainOutput);

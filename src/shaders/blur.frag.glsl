@@ -34,6 +34,6 @@ void main(void) {
 		}
 	}
 	color /= float(samples);
-	color.a *= maskColor.a * (1.0 / (rad * 2.0));
+	color.a *= maskColor.a * (1.0 / rad);
 	outColor = vec4(color.rgb, color.a);
 }

@@ -15,8 +15,9 @@ out vec4 outColor;
 void main(void) {
 	vec4 color = vec4(uv, plane.origin.x + plane.normal.x, 1.0);
 	vec2 p = uv * 2.0 - 1.0;
-	float a = 1.0;//smoothstep(0.0, 0.1, 1.0 - length(p));
+	float l = length(p);
+	float a = smoothstep(0.0, fwidth(l) * 2.0, 1.0 - l);
 	if (length(p) < 1.0) {
-		outColor = vec4(uv * 0.4, 0.0, a);
+		outColor = vec4(0.0, 0.0, 0.0, a);
 	}
 }

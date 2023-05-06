@@ -34,11 +34,11 @@ export class PlaneProgram extends Program {
 		const aspect = w / h;
 
 		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer?.framebuffer || null);
-		gl.disable(gl.DEPTH_TEST);
+		gl.enable(gl.DEPTH_TEST);
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 		gl.clearColor(0.0, 0.0, 0.0, 0.0);
-		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
 		this.bindUniform('camera.view', camera.view());
 		this.bindUniform('camera.projection', camera.projection(aspect));

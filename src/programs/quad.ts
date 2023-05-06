@@ -32,13 +32,16 @@ export class QuadProgram extends Program {
 
 	drawTexture(texture: WebGLTexture, framebuffer: WebGLFramebuffer = 0) {
 		const gl = this.gl;
+		this.use();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer || null);
+		this.bindAttribute('position', this.vertexBuffer);
+		this.bindTexture('frame', texture);
+
 		gl.disable(gl.DEPTH_TEST);
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-		this.use();
-		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer || null);
-		this.bindTexture('frame', texture);
+
 
 		gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 	}
