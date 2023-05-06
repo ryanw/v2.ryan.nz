@@ -3,7 +3,7 @@ import { Framebuffer, GBuffer, Scene } from '../lib';
 import { Plane, Size2, Vector3 } from '../math';
 import { multiplyVector, rotation } from '../math/transform';
 import { normalize } from '../math/vectors';
-import { BlurProgram, GridProgram, QuadProgram, SkyProgram } from '../programs';
+import { BlurProgram, WireProgram, QuadProgram, SkyProgram } from '../programs';
 import { PlaneProgram } from '../programs/plane';
 
 function resizeTexture(gl: WebGL2RenderingContext, texture: WebGLTexture, width: number, height: number, internalFormat: GLenum = gl.RGBA) {
@@ -42,19 +42,19 @@ export class Spacewave extends Scene {
 	private mirrorMask: WebGLTexture;
 	private size: Size2 = [0, 0];
 	private skyProg: SkyProgram;
-	private gridProg: GridProgram;
+	private wireProg: WireProgram;
 	private quadProg: QuadProgram;
 	private blurProg: BlurProgram;
 	private planeProg: PlaneProgram;
 
 	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
-		this.camera.position = [0.0, 1.5, 8.0];
+		this.camera.position = [0.0, 0.5, 7.0];
 		this.backbuffer = new Framebuffer(gl);
 		this.gbuffer = new GBuffer(gl);
 
 		this.skyProg = new SkyProgram(gl);
-		this.gridProg = new GridProgram(gl);
+		this.wireProg = new WireProgram(gl);
 		this.quadProg = new QuadProgram(gl);
 		this.blurProg = new BlurProgram(gl);
 		this.planeProg = new PlaneProgram(gl);
@@ -98,7 +98,7 @@ export class Spacewave extends Scene {
 	}
 
 	drawGeometry(buffer: GBuffer, camera: Camera) {
-		this.gridProg.draw(this.gbuffer, camera, true);
+		this.wireProg.draw(buffer, camera, true);
 	}
 
 	drawLights(output: WebGLTexture, buffer: GBuffer, camera: Camera) {

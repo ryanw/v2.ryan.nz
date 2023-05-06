@@ -2,19 +2,19 @@ import { GBuffer, Scene } from '../lib';
 import { Size2, transform } from '../math';
 import { multiply, rotation, translation } from '../math/transform';
 import { Cube, CubeProgram } from '../programs/cube';
-import { GridProgram } from '../programs/grid';
+import { WireProgram } from '../programs/wire';
 
 export class Cubic extends Scene {
 	cubes: Array<Cube> = [];
 	private program: CubeProgram;
-	private gridProgram: GridProgram;
+	private wireProgram: WireProgram;
 	private gbuffer: GBuffer;
 	private size: Size2 = [1, 1];
 
 	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
 		this.program = new CubeProgram(gl);
-		this.gridProgram = new GridProgram(gl);
+		this.wireProgram = new WireProgram(gl);
 		this.gbuffer = new GBuffer(gl);
 		this.updateViewport();
 

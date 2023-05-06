@@ -6,19 +6,19 @@ import * as vectors from '../math/vectors';
 import { multiply, rotation, scaling, translation } from '../math/transform';
 import { normalize } from '../math/vectors';
 
-export interface GridVertex {
+export interface WireVertex {
 	position: Point3;
 	barycentric: Point3;
 	uv: Point2;
 	id: [number];
 }
 
-export class GridProgram extends Program {
+export class WireProgram extends Program {
 	private positionBuffer!: WebGLBuffer;
 	private barycentricBuffer!: WebGLBuffer;
 	private uvBuffer!: WebGLBuffer;
 	private idBuffer!: WebGLBuffer;
-	private mesh: Mesh<GridVertex>;
+	private mesh: Mesh<WireVertex>;
 
 	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
@@ -46,11 +46,11 @@ export class GridProgram extends Program {
 				position: normalize(ICOSAHEDRON_VERTICES[v]),
 				barycentric: baseTriangle[i % 3].barycentric,
 				uv: baseTriangle[i % 3].uv,
-			} as GridVertex))
+			} as WireVertex))
 		).flat();
 		this.compile();
 
-		this.mesh = new Mesh<GridVertex>(vertices);
+		this.mesh = new Mesh<WireVertex>(vertices);
 		subdivideMesh(this.mesh, 2);
 		this.rebuildMesh();
 	}
@@ -114,23 +114,14 @@ export class GridProgram extends Program {
 		this.bindAttribute('uv', this.uvBuffer);
 		this.bindAttribute('id', this.idBuffer);
 
-		target.framebuffer.bind();
-		if (clear) {
-			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			gl.clearBufferfv(gl.COLOR, 0, [0.1, 0.0, 0.0, 0.0]);
-			gl.clearBufferfv(gl.COLOR, 1, [0.1, 0.1, 0.0, 0.0]);
-			gl.clearBufferfv(gl.COLOR, 2, [0.0, 0.1, 0.0, 0.0]);
-			gl.clearBufferfv(gl.COLOR, 3, [0.0, 0.1, 0.1, 0.0]);
-		}
-
-		gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
+		target.bind();
 
 		const t = performance.now() / 1000.0;
 		this.bindUniform('camera.view', camera.view());
 		this.bindUniform('camera.projection', camera.projection(target.aspect));
 		this.bindUniform('camera.model',
 			multiply(
-				translation(Math.sin(t) * 2.0, Math.cos(t) * 2.0 + 2.0, 0.0),
+				translation(Math.sin(t) * 2.0, Math.cos(t + Math.PI) * 2.0 + 2.0, 0.0),
 				rotation(0.0, t / -2.0, 0.0),
 				scaling(1.0),
 			)
@@ -179,10 +170,10 @@ const ICOSAHEDRON_TRIS: Array<[number, number, number]> = [
 ];
 
 
-type Triangle = [GridVertex, GridVertex, GridVertex];
+type Triangle = [WireVertex, WireVertex, WireVertex];
 type SubdividedTriangles = [Triangle, Triangle, Triangle, Triangle];
 
-function subdivideMesh({ vertices }: Mesh<GridVertex>, count: number = 1) {
+function subdivideMesh({ vertices }: Mesh<WireVertex>, count: number = 1) {
 	for (let i = 0; i < count; i++) {
 		const vertexCount = vertices.length;
 		for (let j = 0; j < vertexCount; j += 3) {

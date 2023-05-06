@@ -1,5 +1,5 @@
 export { CubeProgram, Cube } from './cube';
-export { GridProgram, GridVertex } from './grid';
+export { WireProgram, WireVertex } from './wire';
 export { QuadProgram } from './quad';
 export { BlurProgram } from './blur';
 export { ComposeProgram } from './compose';
