@@ -1,5 +1,5 @@
-import { Matrix4, Plane, Point3, Vector3 } from "./math";
-import { inverse, multiply, perspective, rotation, scaling, translation } from "./math/transform";
+import { Matrix4, Plane, Point3, Vector3, Vector4 } from "./math";
+import { inverse, multiply, multiplyVector, perspective, rotation, scaling, translation } from "./math/transform";
 import { add, cross, reflect, } from "./math/vectors";
 
 /**
@@ -31,6 +31,19 @@ export class Camera {
 	 */
 	translate(direction: Vector3) {
 		this.position = add(this.position, direction);
+	}
+
+	/**
+	 * Rotate the camera
+	 * @param pitch Pitch in radians
+	 * @param yaw Yaw in radians
+	 * @param roll Roll in radians
+	 */
+	rotate(pitch: number, yaw: number, roll: number) {
+		this.forward = multiplyVector(
+			rotation(pitch, yaw, roll),
+			[...this.forward, 0.0],
+		).slice(0, 3) as Vector3;
 	}
 
 	/**

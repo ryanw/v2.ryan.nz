@@ -13,8 +13,9 @@ async function main() {
 	}
 
 	function updateCanvasSize() {
-		el?.setAttribute('width', el.clientWidth.toString());
-		el?.setAttribute('height', el.clientHeight.toString());
+		const scale = 1.0 / 1.0;
+		el?.setAttribute('width', (el.clientWidth * scale).toString());
+		el?.setAttribute('height', (el.clientHeight * scale).toString());
 	}
 	updateCanvasSize();
 
@@ -33,6 +34,7 @@ async function main() {
 		dt = (now - prevFrame) / 1000.0;
 		prevFrame = now;
 
+		const rotation: Vector3 = [0.0, 0.0, 0.0];
 		const velocity: Vector3 = [0.0, 0.0, 0.0];
 		const speed = 4.0 * dt;
 		
@@ -54,8 +56,15 @@ async function main() {
 		if (inputHandler.held('s')) {
 			velocity[2] += speed;
 		}
+		if (inputHandler.held(',')) {
+			rotation[1] -= speed / 2;
+		}
+		if (inputHandler.held('.')) {
+			rotation[1] += speed / 2;
+		}
 
 		scene.camera.translate(velocity);
+		scene.camera.rotate(...rotation);
 
 		await scene.draw();
 	}

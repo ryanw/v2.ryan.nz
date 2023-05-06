@@ -20,6 +20,7 @@ main > :last-child {
 main > canvas {
 	background: #000;
 	position: absolute;
+	image-rendering: crisp-edges;
 	left: 0;
 	top: 0;
 	right: 0;
