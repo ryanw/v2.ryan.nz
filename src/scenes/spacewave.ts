@@ -4,6 +4,7 @@ import { Plane, Size2, Vector3 } from '../math';
 import { multiplyVector, rotation } from '../math/transform';
 import { normalize } from '../math/vectors';
 import { BlurProgram, GridProgram, QuadProgram, SkyProgram } from '../programs';
+import { PlaneProgram } from '../programs/plane';
 
 function resizeTexture(gl: WebGL2RenderingContext, texture: WebGLTexture, width: number, height: number, internalFormat: GLenum = gl.RGBA) {
 	let bytes: Uint8Array | Float32Array;
@@ -44,10 +45,11 @@ export class Spacewave extends Scene {
 	private gridProg: GridProgram;
 	private quadProg: QuadProgram;
 	private blurProg: BlurProgram;
+	private planeProg: PlaneProgram;
 
 	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
-		this.camera.position[2] = 3.0;
+		this.camera.position = [0.0, 1.5, 8.0];
 		this.backbuffer = new Framebuffer(gl);
 		this.gbuffer = new GBuffer(gl);
 
@@ -55,6 +57,7 @@ export class Spacewave extends Scene {
 		this.gridProg = new GridProgram(gl);
 		this.quadProg = new QuadProgram(gl);
 		this.blurProg = new BlurProgram(gl);
+		this.planeProg = new PlaneProgram(gl);
 
 		this.mainOutput = gl.createTexture()!;
 		this.mirrorOutput = gl.createTexture()!;
@@ -79,6 +82,7 @@ export class Spacewave extends Scene {
 
 		const gl = this.gl;
 		this.size = [width, height];
+		resizeTexture(gl, this.mirrorMask, width, height);
 		resizeTexture(gl, this.mainOutput, width, height);
 		resizeTexture(gl, this.mirrorOutput, width, height);
 		gl.viewport(0, 0, width, height);
@@ -101,6 +105,11 @@ export class Spacewave extends Scene {
 	}
 
 	drawPlane(output: WebGLTexture, plane: Plane, camera: Camera) {
+		const gl = this.gl;
+		this.backbuffer.bind();
+		gl.bindTexture(gl.TEXTURE_2D, output);
+		gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
+		this.planeProg.drawPlane(plane, camera, this.backbuffer);
 	}
 
 	drawScene(output: WebGLTexture, camera: Camera) {
@@ -121,10 +130,8 @@ export class Spacewave extends Scene {
 			).slice(0, 3) as Vector3
 		);
 		const mirrorPlane: Plane = [
-			// At the origin
 			[0.0, -1.0, 0.0],
-			// Facing up
-			normalize([0.0, 1.0, 0.0])
+			[0.0, 1.0, 0.0]
 		];
 		const { camera, mainOutput, mirrorOutput, mirrorMask } = this;
 		const mirrorCamera = camera.reflect(mirrorPlane);
@@ -155,6 +162,7 @@ export class Spacewave extends Scene {
 			requestAnimationFrame(() => {
 				this.updateViewport();
 				this.drawFrame();
+				this.quadProg.drawTexture(this.mirrorMask);
 				this.blurProg.drawTexture(this.mirrorOutput);
 				this.quadProg.drawTexture(this.mainOutput);
 				resolve(void 0);

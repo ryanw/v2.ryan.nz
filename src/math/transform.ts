@@ -1,5 +1,6 @@
-import { Matrix4, Point3, Point4, Vector4 } from '.';
+import { Matrix4, Point3, Point4, Vector3, Vector4 } from '.';
 import * as vec from './vectors';
+import { cross, dot, normalize } from './vectors';
 
 export type Columns = [Vector4, Vector4, Vector4, Vector4];
 export type Rows = [Vector4, Vector4, Vector4, Vector4];
@@ -99,6 +100,16 @@ export function perspective(aspect: number, fovDegrees: number, near: number, fa
 		0, 0, z, w,
 		0, 0, -1, 0,
 	];
+}
+
+export function addMatrix(...mats: Array<Matrix4>): Matrix4 {
+	let result: Matrix4 = [...mats[0]];
+	for (let i = 1; i < mats.length; i++) {
+		for (let j = 0; j < 16; j++) {
+			result[j] += mats[i][j];
+		}
+	}
+	return result;
 }
 
 export function multiply(...mats: Array<Matrix4>): Matrix4 {
@@ -242,4 +253,35 @@ export function inverse(m: Matrix4): Matrix4 | null {
 	inv[15] = d44 * d;
 
 	return inv;
+}
+
+export function matrixFromVector(vec: Vector3): Matrix4 {
+	const unit: Vector3 = [0, 0, 1];
+	const angle = Math.acos(dot(unit, vec));
+	const c = Math.cos(angle);
+	const s = Math.sin(angle);
+	const t = 1 - c;
+
+	const [x, y, z] = cross(unit, vec);
+	return [
+		t * x * x + c,
+		t * x * y - z * s,
+		t * x * z + y * s,
+		0,
+
+		t * x * y + z * s,
+		t * y * y + c,
+		t * y * z - x * s,
+		0,
+
+		t * x * z - y * s,
+		t * y * z + x * s,
+		t * z * z + c,
+		0,
+
+		0,
+		0,
+		0,
+		1
+	]
 }

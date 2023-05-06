@@ -130,7 +130,7 @@ export class GridProgram extends Program {
 		this.bindUniform('camera.projection', camera.projection(target.aspect));
 		this.bindUniform('camera.model',
 			multiply(
-				translation(Math.sin(t), 0.0, Math.cos(t) + 0.5),
+				translation(Math.sin(t) * 2.0, Math.cos(t) * 2.0 + 2.0, 0.0),
 				rotation(0.0, t / -2.0, 0.0),
 				scaling(1.0),
 			)

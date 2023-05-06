@@ -27,7 +27,7 @@ export class BlurProgram extends Program {
 		const gl = this.gl;
 		this.use();
 		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer || null);
-		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		gl.clearColor(0.0, 0.0, 0.0, 0.0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 

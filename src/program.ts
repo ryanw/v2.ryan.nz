@@ -210,6 +210,11 @@ export class Program {
 				gl.uniformMatrix4fv(uniform.location, false, new Float32Array(value));
 			}
 			break;
+		case gl.FLOAT_VEC3:
+			if (value instanceof Array) {
+				gl.uniform3fv(uniform.location, new Float32Array(value));
+			}
+			break;
 		case gl.INT:
 			if (typeof value === 'number') {
 				gl.uniform1i(uniform.location, value | 0);

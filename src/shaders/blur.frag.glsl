@@ -11,22 +11,22 @@ out vec4 outColor;
 
 void main(void) {
 	vec2 size = 1.0 / vec2(textureSize(frame, 0));
-	vec2 texCoord = vec2(1.0 - uv.x, 1.0 - uv.y);
+	vec2 texCoord = vec2(uv.x, 1.0 - uv.y);
 	vec4 color = texture(frame, texCoord);
 	int samples = 1;
 
-	float rad = max(0.0, floor(pow(1.0 - uv.y, 7.0) * radius));
+	float rad = max(0.0, pow(1.0 - uv.y, 7.0) * radius);
 	rad += 1.0;
 
 	int r = int(rad);
-	for (int x = -r; x <= r; x++) {
-		for (int y = -r; y <= r; y++) {
+	for (int x = -r; x <= r; x += 2) {
+		for (int y = -r; y <= r; y += 2) {
 			vec2 offset = vec2(float(x), float(y)) * size;
 			color += texture(frame, texCoord + offset);
 			samples++;
 		}
 	}
 	color /= float(samples);
-	color *= 0.7;
-	outColor = vec4(color.rgb, 1.0);
+	color.a *= 1.0 / (rad * 2.0);
+	outColor = vec4(color.rgb, color.a);
 }

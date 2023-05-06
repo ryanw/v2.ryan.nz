@@ -1,9 +1,10 @@
 import { Matrix4, Plane, Point3, Vector3 } from "./math";
 import { inverse, multiply, perspective, rotation, scaling, translation } from "./math/transform";
-import { add, cross, dot, normalize, reflect, scale, subtract } from "./math/vectors";
+import { add, cross, reflect, } from "./math/vectors";
 
 /**
- * A camera in 3D space */
+ * A camera in 3D space
+ */
 export class Camera {
 	position: Point3 = [0.0, 0.0, 0.0];
 	forward: Vector3 = [0.0, 0.0, -1.0];
@@ -20,7 +21,7 @@ export class Camera {
 		reflection.position = reflect(this.position, plane);
 		reflection.forward = reflect(this.forward, [[0, 0, 0], plane[1]]);
 		reflection.up = reflect(this.up, [[0, 0, 0], plane[1]]);
-		reflection.scale = [1.0, -1.0, 1.0];
+		reflection.scale = [-1.0, -1.0, 1.0];
 		return reflection;
 	}
 
