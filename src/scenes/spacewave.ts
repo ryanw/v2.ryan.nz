@@ -114,6 +114,7 @@ export class Spacewave extends Scene {
 
 	drawScene(output: WebGLTexture, camera: Camera) {
 		const gbuffer = this.gbuffer;
+		gbuffer.clear();
 		this.drawSky(gbuffer, camera);
 		this.drawAtmosphere(gbuffer, camera);
 		this.drawGeometry(gbuffer, camera);
@@ -163,7 +164,7 @@ export class Spacewave extends Scene {
 				this.updateViewport();
 				this.drawFrame();
 				this.quadProg.drawTexture(this.mirrorMask);
-				this.blurProg.drawTexture(this.mirrorOutput);
+				this.blurProg.drawTexture(this.mirrorOutput, this.mirrorMask);
 				this.quadProg.drawTexture(this.mainOutput);
 				resolve(void 0);
 			});

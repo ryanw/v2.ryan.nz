@@ -32,6 +32,7 @@ export class QuadProgram extends Program {
 
 	drawTexture(texture: WebGLTexture, framebuffer: WebGLFramebuffer = 0) {
 		const gl = this.gl;
+		gl.disable(gl.DEPTH_TEST);
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 

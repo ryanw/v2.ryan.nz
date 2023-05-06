@@ -15,6 +15,7 @@ export class BlurProgram extends Program {
 		this.addAttribute('position', gl.FLOAT_VEC2);
 		this.addUniform('radius', gl.FLOAT);
 		this.addTexture('frame');
+		this.addTexture('mask');
 
 		this.vertexBuffer = gl.createBuffer()!;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
@@ -31,7 +32,7 @@ export class BlurProgram extends Program {
 		gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 
-	drawTexture(texture: WebGLTexture, framebuffer: WebGLFramebuffer = 0) {
+	drawTexture(texture: WebGLTexture, mask: WebGLTexture, framebuffer: WebGLFramebuffer = 0) {
 		const gl = this.gl;
 		this.use();
 
@@ -42,6 +43,7 @@ export class BlurProgram extends Program {
 
 		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer || null);
 		this.bindTexture('frame', texture);
+		this.bindTexture('mask', mask);
 
 		gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 	}
