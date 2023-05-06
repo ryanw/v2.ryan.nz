@@ -1,6 +1,6 @@
 import { Program } from '../program';
 import { GBuffer } from '../gbuffer';
-import vertSource from '../shaders/quad.vert.glsl';
+import vertSource from '../shaders/compose.vert.glsl';
 import fragSource from '../shaders/compose.frag.glsl';
 
 const QUAD_VERTS = new Float32Array([-1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0]);

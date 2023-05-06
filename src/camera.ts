@@ -21,7 +21,7 @@ export class Camera {
 		reflection.position = reflect(this.position, plane);
 		reflection.forward = reflect(this.forward, [[0, 0, 0], plane[1]]);
 		reflection.up = reflect(this.up, [[0, 0, 0], plane[1]]);
-		reflection.scale = [-1.0, -1.0, 1.0];
+		reflection.scale = [-1.0, 1.0, 1.0];
 		return reflection;
 	}
 

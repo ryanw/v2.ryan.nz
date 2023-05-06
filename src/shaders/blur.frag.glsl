@@ -12,7 +12,7 @@ out vec4 outColor;
 
 void main(void) {
 	vec2 size = 1.0 / vec2(textureSize(frame, 0));
-	vec2 texCoord = vec2(uv.x, 1.0 - uv.y);
+	vec2 texCoord = vec2(uv.x, uv.y);
 	vec4 color = texture(frame, texCoord);
 	vec4 maskColor = texture(mask, uv);
 

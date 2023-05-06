@@ -1,9 +1,10 @@
 import { Camera } from '../camera';
-import { Framebuffer, GBuffer, Scene } from '../lib';
-import { Plane, Size2, Vector3 } from '../math';
-import { multiplyVector, rotation } from '../math/transform';
+import { Framebuffer, GBuffer, Mesh, Scene } from '../lib';
+import { Matrix4, PHI, Plane, Point3, Size2, Vector3 } from '../math';
+import { identity, multiply, multiplyVector, rotation, scaling, translation } from '../math/transform';
+import * as vectors from '../math/vectors';
 import { normalize } from '../math/vectors';
-import { BlurProgram, WireProgram, QuadProgram, SkyProgram } from '../programs';
+import { BlurProgram, WireProgram, QuadProgram, SkyProgram, WireVertex, IcosphereProgram } from '../programs';
 import { PlaneProgram } from '../programs/plane';
 
 function resizeTexture(gl: WebGL2RenderingContext, texture: WebGLTexture, width: number, height: number, internalFormat: GLenum = gl.RGBA) {
@@ -33,8 +34,14 @@ function resizeTexture(gl: WebGL2RenderingContext, texture: WebGLTexture, width:
 	}
 }
 
+interface Entity {
+	transform: Matrix4;
+	mesh: Mesh<WireVertex>;
+};
+
 export class Spacewave extends Scene {
 	camera = new Camera();
+	private entities: Array<Entity>;
 	private backbuffer: Framebuffer;
 	private gbuffer: GBuffer;
 	private skyOutput: WebGLTexture;
@@ -44,18 +51,43 @@ export class Spacewave extends Scene {
 	private size: Size2 = [0, 0];
 	private skyProg: SkyProgram;
 	private wireProg: WireProgram;
+	private icoProg: IcosphereProgram;
 	private quadProg: QuadProgram;
 	private blurProg: BlurProgram;
 	private planeProg: PlaneProgram;
 
 	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
+
+		const baseTriangle = [
+			{ position: [0.0, 0.0, 0.0], barycentric: [1.0, 0.0, 0.0], uv: [0.0, 0.0] },
+			{ position: [0.0, 0.0, 0.0], barycentric: [0.0, 1.0, 0.0], uv: [0.0, 1.0] },
+			{ position: [0.0, 0.0, 0.0], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0] },
+		];
+		const vertices = ICOSAHEDRON_TRIS.map((tri) =>
+			tri.map((v, i) => ({
+				position: normalize(ICOSAHEDRON_VERTICES[v]),
+				barycentric: baseTriangle[i % 3].barycentric,
+				uv: baseTriangle[i % 3].uv,
+			} as WireVertex))
+		).flat();
+		this.entities = [
+			{
+				transform: translation(2.0, 1.0, 2.0),
+				mesh: new Mesh(vertices),
+			},
+			{
+				transform: translation(0.0, 0.0, 0.0),
+				mesh: new Mesh(vertices),
+			}
+		];
 		this.camera.position = [0.0, 0.5, 7.0];
 		this.backbuffer = new Framebuffer(gl);
 		this.gbuffer = new GBuffer(gl);
 
 		this.skyProg = new SkyProgram(gl);
 		this.wireProg = new WireProgram(gl);
+		this.icoProg = new IcosphereProgram(gl);
 		this.quadProg = new QuadProgram(gl);
 		this.blurProg = new BlurProgram(gl);
 		this.planeProg = new PlaneProgram(gl);
@@ -102,7 +134,10 @@ export class Spacewave extends Scene {
 	}
 
 	drawGeometry(buffer: GBuffer, camera: Camera) {
-		this.wireProg.draw(buffer, camera, true);
+		for (const { transform, mesh } of this.entities) {
+			this.wireProg.draw(buffer, camera, transform, mesh);
+		}
+		//this.icoProg.draw(buffer, camera);
 	}
 
 	drawLights(output: WebGLTexture, buffer: GBuffer, camera: Camera) {
@@ -173,4 +208,91 @@ export class Spacewave extends Scene {
 			});
 		});
 	}
+}
+
+const ICOSAHEDRON_VERTICES: Array<Point3> = [
+	[-1, PHI, 0],
+	[1, PHI, 0],
+	[-1, -PHI, 0],
+	[1, -PHI, 0],
+	[0, -1, PHI],
+	[0, 1, PHI],
+	[0, -1, -PHI],
+	[0, 1, -PHI],
+	[PHI, 0, -1],
+	[PHI, 0, 1],
+	[-PHI, 0, -1],
+	[-PHI, 0, 1]
+];
+
+const ICOSAHEDRON_TRIS: Array<[number, number, number]> = [
+	[0, 11, 5],
+	[0, 5, 1],
+	[0, 1, 7],
+	[0, 7, 10],
+	[0, 10, 11],
+	[1, 5, 9],
+	[5, 11, 4],
+	[11, 10, 2],
+	[10, 7, 6],
+	[7, 1, 8],
+	[3, 9, 4],
+	[3, 4, 2],
+	[3, 2, 6],
+	[3, 6, 8],
+	[3, 8, 9],
+	[4, 9, 5],
+	[2, 4, 11],
+	[6, 2, 10],
+	[8, 6, 7],
+	[9, 8, 1]
+];
+
+
+type Triangle = [WireVertex, WireVertex, WireVertex];
+type SubdividedTriangles = [Triangle, Triangle, Triangle, Triangle];
+
+function subdivideMesh({ vertices }: Mesh<WireVertex>, count: number = 1) {
+	for (let i = 0; i < count; i++) {
+		const vertexCount = vertices.length;
+		for (let j = 0; j < vertexCount; j += 3) {
+			const v0 = vertices[j];
+			const v1 = vertices[j + 1];
+			const v2 = vertices[j + 2];
+			const [t0, ...tris] = subdivideTriangle([v0, v1, v2]);
+
+			// Replace current tri with the first one
+			vertices.splice(j, 3, ...t0);
+
+			// Append the last 3 to the mesh
+			vertices.push(...tris.flat());
+		}
+	}
+}
+
+
+function subdivideTriangle(tri: Triangle): SubdividedTriangles {
+	const vertices = tri.map(({ position }) => [...position]);
+	const indexes = [
+		[0, 3, 5],
+		[3, 1, 4],
+		[5, 3, 4],
+		[5, 4, 2]
+	];
+
+	for (let i = 0; i < 3; i++) {
+		const v0 = [...tri[i].position] as Point3;
+		const v1 = [...tri[(i + 1) % 3].position] as Point3;
+		vertices.push(midway(v0, v1));
+	}
+
+	return indexes.map(([v0, v1, v2]) => [
+		{ position: vertices[v0], barycentric: [1.0, 0.0, 0.0], uv: [0.0, 0.0], id: [0] },
+		{ position: vertices[v1], barycentric: [0.0, 1.0, 0.0], uv: [0.0, 1.0], id: [0] },
+		{ position: vertices[v2], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0], id: [0] },
+	]) as SubdividedTriangles;
+}
+
+function midway(p0: Point3, p1: Point3): Point3 {
+	return normalize(vectors.scale(vectors.add(p0, p1), 0.5));
 }

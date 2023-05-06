@@ -1,9 +1,9 @@
 import { Camera, GBuffer, Mesh, Program } from '../lib';
 import vertSource from '../shaders/grid.vert.glsl';
 import fragSource from '../shaders/grid.frag.glsl';
-import { Matrix4, PHI, Point2, Point3, transform } from '../math';
+import { PHI, Point2, Point3, transform } from '../math';
 import * as vectors from '../math/vectors';
-import { inverse, multiply, rotation, scaling, translation } from '../math/transform';
+import { multiply, rotation, scaling, translation } from '../math/transform';
 import { normalize } from '../math/vectors';
 
 export interface WireVertex {
@@ -13,11 +13,12 @@ export interface WireVertex {
 	id: [number];
 }
 
-export class WireProgram extends Program {
+export class IcosphereProgram extends Program {
 	private positionBuffer!: WebGLBuffer;
 	private barycentricBuffer!: WebGLBuffer;
 	private uvBuffer!: WebGLBuffer;
 	private idBuffer!: WebGLBuffer;
+	private mesh: Mesh<WireVertex>;
 
 	constructor(gl: WebGL2RenderingContext) {
 		super(gl);
@@ -48,13 +49,34 @@ export class WireProgram extends Program {
 			} as WireVertex))
 		).flat();
 		this.compile();
+
+		this.mesh = new Mesh<WireVertex>(vertices);
+		subdivideMesh(this.mesh, 2);
+		this.rebuildMesh();
 	}
 
-	uploadMesh(mesh: Mesh<WireVertex>) {
-		const gl = this.gl;
-		const { position, barycentric, uv } = mesh.toTypedArrays();
+	clipMesh(offset: number = 0.0) {
+		const vertices = this.mesh.vertices;
+		const newVertices = [];
+		for (let i = 0; i < vertices.length; i += 3) {
+			const v0 = vertices[i];
+			const v1 = vertices[i + 1];
+			const v2 = vertices[i + 2];
 
-		const id = new Float32Array(mesh.vertices.length);
+			if (v0.position[1] < offset && v1.position[1] < offset && v2.position[1] < offset) {
+				continue;
+			}
+
+			newVertices.push(v0, v1, v2);
+		}
+		this.mesh.vertices = newVertices;
+	}
+
+	rebuildMesh() {
+		const gl = this.gl;
+		const { position, barycentric, uv } = this.mesh.toTypedArrays();
+
+		const id = new Float32Array(this.mesh.vertices.length);
 		for (let i = 0; i < id.length; i += 3) {
 			const n = Math.random();
 			id[i] = n
@@ -79,10 +101,8 @@ export class WireProgram extends Program {
 		gl.bufferData(gl.ARRAY_BUFFER, id, gl.STATIC_DRAW);
 	}
 
-	draw(target: GBuffer, camera: Camera, transform: Matrix4, mesh: Mesh<WireVertex>) {
+	draw(target: GBuffer, camera: Camera, clear: boolean = false) {
 		const gl = this.gl;
-		this.uploadMesh(mesh);
-
 		gl.disable(gl.BLEND);
 		this.use();
 
@@ -96,11 +116,18 @@ export class WireProgram extends Program {
 
 		target.bind();
 
+		const t = performance.now() / 1000.0;
 		this.bindUniform('camera.view', camera.view());
 		this.bindUniform('camera.projection', camera.projection(target.aspect));
-		this.bindUniform('camera.model', inverse(transform));
+		this.bindUniform('camera.model',
+			multiply(
+				translation(Math.sin(t) * 2.0, Math.cos(t + Math.PI) * 2.0 + 2.0, 0.0),
+				rotation(0.0, t / -2.0, 0.0),
+				scaling(1.0),
+			)
+		);
 
-		gl.drawArrays(gl.TRIANGLES, 0, mesh.vertices.length);
+		gl.drawArrays(gl.TRIANGLES, 0, this.mesh.vertices.length);
 	}
 }
 
@@ -141,3 +168,52 @@ const ICOSAHEDRON_TRIS: Array<[number, number, number]> = [
 	[8, 6, 7],
 	[9, 8, 1]
 ];
+
+
+type Triangle = [WireVertex, WireVertex, WireVertex];
+type SubdividedTriangles = [Triangle, Triangle, Triangle, Triangle];
+
+function subdivideMesh({ vertices }: Mesh<WireVertex>, count: number = 1) {
+	for (let i = 0; i < count; i++) {
+		const vertexCount = vertices.length;
+		for (let j = 0; j < vertexCount; j += 3) {
+			const v0 = vertices[j];
+			const v1 = vertices[j + 1];
+			const v2 = vertices[j + 2];
+			const [t0, ...tris] = subdivideTriangle([v0, v1, v2]);
+
+			// Replace current tri with the first one
+			vertices.splice(j, 3, ...t0);
+
+			// Append the last 3 to the mesh
+			vertices.push(...tris.flat());
+		}
+	}
+}
+
+
+function subdivideTriangle(tri: Triangle): SubdividedTriangles {
+	const vertices = tri.map(({ position }) => [...position]);
+	const indexes = [
+		[0, 3, 5],
+		[3, 1, 4],
+		[5, 3, 4],
+		[5, 4, 2]
+	];
+
+	for (let i = 0; i < 3; i++) {
+		const v0 = [...tri[i].position] as Point3;
+		const v1 = [...tri[(i + 1) % 3].position] as Point3;
+		vertices.push(midway(v0, v1));
+	}
+
+	return indexes.map(([v0, v1, v2]) => [
+		{ position: vertices[v0], barycentric: [1.0, 0.0, 0.0], uv: [0.0, 0.0], id: [0] },
+		{ position: vertices[v1], barycentric: [0.0, 1.0, 0.0], uv: [0.0, 1.0], id: [0] },
+		{ position: vertices[v2], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0], id: [0] },
+	]) as SubdividedTriangles;
+}
+
+function midway(p0: Point3, p1: Point3): Point3 {
+	return normalize(vectors.scale(vectors.add(p0, p1), 0.5));
+}
