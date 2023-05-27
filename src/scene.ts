@@ -1,18 +1,16 @@
-import { GBuffer } from './lib';
-import { ComposeProgram } from './programs/compose';
+import { Context, GBuffer } from './lib';
+import { ComposePipeline } from './pipelines/compose';
 
 export abstract class Scene {
-	protected gl: WebGL2RenderingContext;
-	protected composeProgram: ComposeProgram;
+	protected ctx: Context;
+	protected composePipeline: ComposePipeline;
 
-	constructor(gl: WebGL2RenderingContext) {
-		this.gl = gl;
-		this.composeProgram = new ComposeProgram(gl);
-
+	constructor(ctx: Context) {
+		this.ctx = ctx;
+		this.composePipeline = new ComposePipeline(ctx);
 	}
 
 	drawToScreen(buffer: GBuffer) {
-		this.composeProgram.compose(buffer);
 	}
 
 	abstract draw(): Promise<void | unknown>;

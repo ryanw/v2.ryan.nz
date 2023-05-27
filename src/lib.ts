@@ -9,6 +9,8 @@ import * as scenes from './scenes';
 import * as math from './math';
 import * as programs from './programs';
 export { scenes, math, programs };
+export { Context } from './context';
+export { Pipeline } from './pipeline';
 
 type Color = math.Vector4;
 export { Color };

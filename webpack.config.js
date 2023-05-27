@@ -27,7 +27,7 @@ module.exports = {
 			{ test: /\.ts$/, use: 'ts-loader' },
 
 			// Shader files
-			{ test: /\.glsl$/, use: ['raw-loader'] },
+			{ test: /\.(glsl|wgsl)$/, use: ['raw-loader'] },
 		],
 	},
 	resolve: {

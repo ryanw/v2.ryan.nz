@@ -1,3 +1,4 @@
+import { Context } from './context';
 import { InputHandler } from './lib';
 import { Vector3 } from './math';
 import { Spacewave } from './scenes/spacewave';
@@ -24,7 +25,8 @@ async function main() {
 
 
 	const inputHandler = new InputHandler(window);
-	const scene = new Spacewave(el.getContext('webgl2')!);
+	const ctx = await Context.attach(el);
+	const scene = new Spacewave(ctx);
 
 	let now = performance.now();
 	let prevFrame = performance.now();
