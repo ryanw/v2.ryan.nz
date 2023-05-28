@@ -26,7 +26,7 @@ export class Context {
 
 		let device, adapter, ctx;
 		try {
-			adapter = await navigator.gpu.requestAdapter()
+			adapter = await navigator.gpu.requestAdapter();
 		} catch (e) {
 			console.error("Couldn't request WebGPU adapter", e);
 		}

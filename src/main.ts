@@ -12,11 +12,12 @@ async function main() {
 	if (!(el instanceof HTMLCanvasElement)) {
 		throw new Error("Couldn't find canvas");
 	}
+	const ctx = await Context.attach(el);
 
 	function updateCanvasSize() {
-		const scale = 1.0 / 1.0;
-		el?.setAttribute('width', (el.clientWidth * scale).toString());
-		el?.setAttribute('height', (el.clientHeight * scale).toString());
+		if (!el) return;
+		const { clientWidth: w, clientHeight: h } = el;
+		ctx.resize(w, h);
 	}
 	updateCanvasSize();
 
@@ -25,7 +26,6 @@ async function main() {
 
 
 	const inputHandler = new InputHandler(window);
-	const ctx = await Context.attach(el);
 	const scene = new Spacewave(ctx);
 
 	let now = performance.now();

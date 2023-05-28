@@ -1,33 +1,70 @@
+import { Matrix4, PHI, Plane, Point2, Point3, Size2, Vector3 } from '../math';
 import { Camera } from '../camera';
 import { Context } from '../context';
-import { Pipeline } from '../pipeline';
 import { Scene } from '../scene';
-import SHADER_SOURCE from './test_shader.wgsl';
+import { normalize } from '../math/vectors';
+import { Mesh } from '../mesh';
+import { translation } from '../math/transform';
+import { WireVertex, WireframePipeline } from '../pipelines/wireframe';
+
+interface Entity {
+	transform: Matrix4;
+	mesh: Mesh<WireVertex>;
+}
 
 export class Spacewave extends Scene {
+	private entities: Array<Entity>;
 	camera = new Camera();
-	testPipeline: TestPipeline;
+	wireframePipeline: WireframePipeline;
 
 	constructor(ctx: Context) {
 		super(ctx);
-		this.testPipeline = new TestPipeline(ctx);
+		this.wireframePipeline = new WireframePipeline(ctx);
+
+		const baseTriangle = [
+			{ position: [0.0, 0.0, 0.0], barycentric: [1.0, 0.0, 0.0], uv: [0.0, 0.0] },
+			{ position: [0.0, 0.0, 0.0], barycentric: [0.0, 1.0, 0.0], uv: [0.0, 1.0] },
+			{ position: [0.0, 0.0, 0.0], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0] },
+		];
+		const vertices = ICOSAHEDRON_TRIS.map((tri) =>
+			tri.map((v, i) => ({
+				position: normalize(ICOSAHEDRON_VERTICES[v]),
+				barycentric: baseTriangle[i % 3].barycentric,
+				uv: baseTriangle[i % 3].uv,
+			} as WireVertex))
+		).flat();
+
+		this.entities = [
+			{
+				transform: translation(2.0, 1.0, 2.0),
+				mesh: new Mesh(ctx, vertices),
+			},
+			{
+				transform: translation(0.0, 0.0, 0.0),
+				mesh: new Mesh(ctx, vertices),
+			}
+		];
+
+		this.camera.position = [0.0, 0.5, 7.0];
 	}
 
-	async draw() {
+	drawFrame(camera?: Camera): number {
 		const { ctx } = this;
-		return new Promise(resolve => {
-			requestAnimationFrame(() => {
-				const t = performance.now();
-				// Draw stuff
-				const view = ctx.currentTexture.createView();
-				this.testPipeline.draw(view);
-				const dt = performance.now() - t;
-				resolve(dt / 1000.0);
-			});
-		});
+		const t = performance.now();
+		const view = ctx.currentTexture.createView();
+		let cleared = false;
+		for (const { transform, mesh } of this.entities) {
+			this.wireframePipeline.draw(view, camera || this.camera, transform, mesh, !cleared);
+			cleared = true;
+		}
+		return (performance.now() - t) / 1000;
 	}
 
-	updateViewport() {
+	async draw(camera?: Camera) {
+		return new Promise(resolve =>
+			requestAnimationFrame(() =>
+				resolve(this.drawFrame(camera))
+			));
 	}
 
 	resize(width: number, height: number) {
@@ -39,35 +76,47 @@ export class Spacewave extends Scene {
 	}
 }
 
-class TestPipeline extends Pipeline {
-	private pipeline: GPURenderPipeline;
+const ICOSAHEDRON_VERTICES: Array<Point3> = [
+	[-1, PHI, 0],
+	[1, PHI, 0],
+	[-1, -PHI, 0],
+	[1, -PHI, 0],
+	[0, -1, PHI],
+	[0, 1, PHI],
+	[0, -1, -PHI],
+	[0, 1, -PHI],
+	[PHI, 0, -1],
+	[PHI, 0, 1],
+	[-PHI, 0, -1],
+	[-PHI, 0, 1]
+];
 
-	constructor(ctx: Context) {
-		super(ctx);
-		const { device, format } = ctx;
-		const module = device.createShaderModule({ code: SHADER_SOURCE });
-		this.pipeline = device.createRenderPipeline({
-			layout: 'auto',
-			vertex: { module, entryPoint: 'vs_main' },
-			fragment: { module, entryPoint: 'fs_main', targets: [{ format }] },
-			primitive: { topology: 'triangle-list' }
-		});
-	}
+const ICOSAHEDRON_TRIS: Array<[number, number, number]> = [
+	[0, 11, 5],
+	[0, 5, 1],
+	[0, 1, 7],
+	[0, 7, 10],
+	[0, 10, 11],
+	[1, 5, 9],
+	[5, 11, 4],
+	[11, 10, 2],
+	[10, 7, 6],
+	[7, 1, 8],
+	[3, 9, 4],
+	[3, 4, 2],
+	[3, 2, 6],
+	[3, 6, 8],
+	[3, 8, 9],
+	[4, 9, 5],
+	[2, 4, 11],
+	[6, 2, 10],
+	[8, 6, 7],
+	[9, 8, 1]
+];
 
-	draw(view: GPUTextureView) {
-		const { device } = this.ctx;
-
-		const clearValue =  { r: 0.8, g: 0.0, b: 0.4, a: 1.0 };
-		const encoder = device.createCommandEncoder();
-		const renderPass = encoder.beginRenderPass({
-			colorAttachments: [
-				{ view, clearValue, loadOp: 'clear', storeOp: 'store' }
-			]
-		});
-		
-		renderPass.setPipeline(this.pipeline);
-		renderPass.draw(3, 1, 0 ,0);
-		renderPass.end();
-		device.queue.submit([encoder.finish()]);
-	}
-}
+const QUAD_VERTS = [
+	[-0.5, -0.5, 0.0],
+	[0.5, -0.5, 0.0],
+	[-0.5, 0.5, 0.0],
+	[0.5, 0.5, 0.0],
+];

@@ -1,4 +1,4 @@
-import { Size2 } from "./math";
+import { Size2 } from './math';
 
 export class Framebuffer {
 	gl: WebGL2RenderingContext;

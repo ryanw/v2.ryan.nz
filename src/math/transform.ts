@@ -32,7 +32,7 @@ export function matrixToRows(m: Matrix4): Rows {
 			cols[1][i],
 			cols[2][i],
 			cols[3][i],
-		]
+		];
 	}
 
 	return rows as Rows;
@@ -103,7 +103,7 @@ export function perspective(aspect: number, fovDegrees: number, near: number, fa
 }
 
 export function addMatrix(...mats: Array<Matrix4>): Matrix4 {
-	let result: Matrix4 = [...mats[0]];
+	const result: Matrix4 = [...mats[0]];
 	for (let i = 1; i < mats.length; i++) {
 		for (let j = 0; j < 16; j++) {
 			result[j] += mats[i][j];
@@ -283,5 +283,5 @@ export function matrixFromVector(vec: Vector3): Matrix4 {
 		0,
 		0,
 		1
-	]
+	];
 }

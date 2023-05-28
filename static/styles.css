@@ -21,6 +21,7 @@ main > canvas {
 	background: #000;
 	position: absolute;
 	image-rendering: crisp-edges;
+	image-rendering: pixelated;
 	left: 0;
 	top: 0;
 	right: 0;

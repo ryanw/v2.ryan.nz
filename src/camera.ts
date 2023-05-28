@@ -1,6 +1,6 @@
-import { Matrix4, Plane, Point3, Vector3, Vector4 } from "./math";
-import { inverse, multiply, multiplyVector, perspective, rotation, scaling, translation } from "./math/transform";
-import { add, cross, reflect, } from "./math/vectors";
+import { Matrix4, Plane, Point3, Vector3, Vector4 } from './math';
+import { inverse, multiply, multiplyVector, perspective, rotation, scaling, translation } from './math/transform';
+import { add, cross, reflect, } from './math/vectors';
 
 /**
  * A camera in 3D space
@@ -53,9 +53,9 @@ export class Camera {
 	eulerRotation(): [number, number, number] {
 		const { up, forward } = this;
 		const right = cross(up, forward);
-		const pitch = Math.asin(forward[1])
-		const yaw = Math.atan2(forward[0], forward[2])
-		const roll = Math.atan2(right[1], up[1])
+		const pitch = Math.asin(forward[1]);
+		const yaw = Math.atan2(forward[0], forward[2]);
+		const roll = Math.atan2(right[1], up[1]);
 		return [pitch, yaw, roll];
 	}
 

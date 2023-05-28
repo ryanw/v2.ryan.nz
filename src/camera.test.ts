@@ -1,5 +1,5 @@
-import { Camera } from "./camera";
-import { Plane } from "./math";
+import { Camera } from './camera';
+import { Plane } from './math';
 
 describe('Camera', () => {
 	test('reflects its position', () => {

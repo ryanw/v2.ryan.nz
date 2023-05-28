@@ -2,7 +2,7 @@ import { Framebuffer } from './framebuffer';
 import { Size2 } from './math';
 
 function generateTexture(gl: WebGL2RenderingContext, unit: number, format: GLenum = gl.RGBA): WebGLTexture {
-	console.debug("Generating texture", unit, format);
+	console.debug('Generating texture', unit, format);
 	const texture = gl.createTexture()!;
 	resizeTexture(gl, texture, unit, 1, 1, format);
 	return texture;
@@ -11,21 +11,21 @@ function generateTexture(gl: WebGL2RenderingContext, unit: number, format: GLenu
 function resizeTexture(gl: WebGL2RenderingContext, texture: WebGLTexture, unit: number, width: number, height: number, internalFormat: GLenum = gl.RGBA) {
 	let bytes: Uint8Array | Float32Array;
 	let dataType: GLenum = gl.UNSIGNED_BYTE;
-	let format: GLenum = gl.RGBA;
+	const format: GLenum = gl.RGBA;
 
 	switch (internalFormat) {
-		case gl.RGBA32F:
-			dataType = gl.FLOAT;
-			bytes = new Float32Array(width * height * 4);
-			break;
+	case gl.RGBA32F:
+		dataType = gl.FLOAT;
+		bytes = new Float32Array(width * height * 4);
+		break;
 
-		case gl.RGBA:
-			bytes = new Uint8Array(width * height * 4);
-			break;
+	case gl.RGBA:
+		bytes = new Uint8Array(width * height * 4);
+		break;
 
-		default:
-			console.error("Unhandled format", format);
-			bytes = new Uint8Array();
+	default:
+		console.error('Unhandled format', format);
+		bytes = new Uint8Array();
 	}
 
 	gl.activeTexture(gl.TEXTURE0 + unit);

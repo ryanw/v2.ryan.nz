@@ -13,11 +13,11 @@ export class InputHandler {
 
 	onKeyDown = (e: KeyboardEvent) => {
 		this.heldKeys.add(e.key);
-	}
+	};
 
 	onKeyUp = (e: KeyboardEvent) => {
 		this.heldKeys.delete(e.key);
-	}
+	};
 
 	listen() {
 		// FIXME type hacks

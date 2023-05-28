@@ -1,4 +1,4 @@
-import { Context } from "./context";
+import { Context } from './context';
 
 export class Pipeline {
 	readonly ctx: Context;
