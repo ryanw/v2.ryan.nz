@@ -1,6 +1,6 @@
 import { Context } from './context';
 import { InputHandler } from './lib';
-import { Vector3 } from './math';
+import { Vector2, Vector3 } from './math';
 import { Spacewave } from './scenes/spacewave';
 
 /**
@@ -12,11 +12,26 @@ async function main() {
 	if (!(el instanceof HTMLCanvasElement)) {
 		throw new Error("Couldn't find canvas");
 	}
-	const ctx = await Context.attach(el);
+
+	let ctx: Context;
+	try {
+		ctx = await Context.attach(el);
+	} catch(e) {
+		alert("Your browser doesn't support WebGPU. How embarassing for you. 😳");
+		return;
+	}
 
 	function updateCanvasSize() {
-		if (!el) return;
-		const { clientWidth: w, clientHeight: h } = el;
+		if (!(el instanceof HTMLCanvasElement)) return;
+		if (!el?.parentElement) return;
+		const { clientWidth, clientHeight } = el.parentElement;
+		const div = 3;
+		const w = clientWidth / div | 0;
+		const h = clientHeight / div | 0;
+
+
+		el.style.width = `${w * div}px`;
+		el.style.height = `${h * div}px`;
 		ctx.resize(w, h);
 	}
 	updateCanvasSize();
@@ -28,6 +43,7 @@ async function main() {
 	const inputHandler = new InputHandler(window);
 	const scene = new Spacewave(ctx);
 
+	let mouse = [0, 0];
 	let now = performance.now();
 	let prevFrame = performance.now();
 	let dt = 0.1;
@@ -36,9 +52,10 @@ async function main() {
 		dt = (now - prevFrame) / 1000.0;
 		prevFrame = now;
 
-		const rotation: Vector3 = [0.0, 0.0, 0.0];
+		const rotation: Vector2 = [0.0, 0.0];
 		const velocity: Vector3 = [0.0, 0.0, 0.0];
 		const speed = 4.0 * dt;
+		const rotSpeed = 1.0 / 1000.0;
 		
 		if (inputHandler.held('a')) {
 			velocity[0] -= speed;
@@ -58,13 +75,13 @@ async function main() {
 		if (inputHandler.held('s')) {
 			velocity[2] += speed;
 		}
-		if (inputHandler.held(',')) {
-			rotation[1] -= speed / 2;
-		}
-		if (inputHandler.held('.')) {
-			rotation[1] += speed / 2;
-		}
 
+		if (inputHandler.mouseButtons.has(0)) {
+			rotation[1] = (mouse[0] - inputHandler.mousePosition[0]) * rotSpeed;
+			rotation[0] = (mouse[1] - inputHandler.mousePosition[1]) * rotSpeed;
+		}
+		mouse = [...inputHandler.mousePosition];
+		
 		scene.camera.translate(velocity);
 		scene.camera.rotate(...rotation);
 
