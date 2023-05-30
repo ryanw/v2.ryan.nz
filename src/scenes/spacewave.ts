@@ -5,12 +5,8 @@ import { Scene } from '../scene';
 import { cross, normalize, subtract } from '../math/vectors';
 import { Mesh } from '../mesh';
 import { multiply, rotation, translation } from '../math/transform';
-import { WireVertex, WireframePipeline } from '../pipelines/wireframe';
-
-interface Entity {
-	transform: Matrix4;
-	mesh: Mesh<WireVertex>;
-}
+import { Entity, WireVertex, WireframePipeline } from '../pipelines/wireframe';
+import { Color } from '../lib';
 
 function calculateNormals(vertices: Array<WireVertex>) {
 	for (let i = 0; i < vertices.length; i += 3) {
@@ -32,60 +28,81 @@ export class Spacewave extends Scene {
 	private entities: Array<Entity>;
 	camera = new Camera();
 	wireframePipeline: WireframePipeline;
+	lastUpdateAt = performance.now();
 
 	constructor(ctx: Context) {
 		super(ctx);
 		this.wireframePipeline = new WireframePipeline(ctx);
 
 		const baseTriangle = [
-			{ position: [0.0, 0.0, 0.0], barycentric: [1.0, 0.0, 0.0], uv: [0.0, 0.0], normal: [1.0, 0.0, 0.0] },
-			{ position: [0.0, 0.0, 0.0], barycentric: [0.0, 1.0, 0.0], uv: [0.0, 1.0], normal: [1.0, 0.0, 0.0] },
-			{ position: [0.0, 0.0, 0.0], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0], normal: [1.0, 0.0, 0.0] },
+			{ position: [0.0, 0.0, 0.0], barycentric: [1.0, 0.0, 0.0], uv: [0.0, 0.0] },
+			{ position: [0.0, 0.0, 0.0], barycentric: [0.0, 1.0, 0.0], uv: [0.0, 1.0] },
+			{ position: [0.0, 0.0, 0.0], barycentric: [0.0, 0.0, 1.0], uv: [1.0, 1.0] },
 		];
-		const vertices = ICOSAHEDRON_TRIS.map((tri) =>
+
+		const icosahedron = ICOSAHEDRON_TRIS.map((tri) =>
 			tri.map((v, i) => ({
 				position: normalize(ICOSAHEDRON_VERTICES[v]),
 				barycentric: baseTriangle[i % 3].barycentric,
 				uv: baseTriangle[i % 3].uv,
-				normal: baseTriangle[i % 3].normal,
+				normal: [0.0, 0.0, 0.0],
+				color: [0.0, 1.0, 1.0, 0.5],
 			} as WireVertex))
 		).flat();
 
-		calculateNormals(vertices);
+		calculateNormals(icosahedron);
 
-		this.entities = [
-			{
-				transform: translation(2.0, 1.0, 2.0),
+		this.entities = [];
+
+		const rn = Math.random;
+
+		for (let i = 0; i < 500; i++) {
+			const dist = 50.0;
+			const color: Color = [rn() * 0.7, rn() * 0.7, rn() * 0.7, 1.0];
+			const position: Point3 = [(rn() - 0.5) * dist, (rn() - 0.5) * dist, (rn() - 0.5) * dist];
+			const rotation: Point3 = [(rn() - 0.5), (rn() - 0.5), (rn() - 0.5)];
+			const vertices = icosahedron.map(v => ({ ...v, color }));
+			this.entities.push({
+				transform: translation(...position),
+				rotation,
 				mesh: new Mesh(ctx, vertices),
-			},
-			{
-				transform: translation(0.0, 0.0, 0.0),
-				mesh: new Mesh(ctx, vertices),
-			}
-		];
+			});
+		}
 
 		this.camera.position = [0.0, 0.5, 5.0];
+	}
+
+	updateModels() {
+		const now = performance.now();
+		const dt = (now - this.lastUpdateAt) / 1000.0;
+		for (const entity of this.entities) {
+			entity.transform = multiply(
+				entity.transform,
+				rotation(
+					entity.rotation[0] * dt,
+					entity.rotation[1] * dt,
+					entity.rotation[2] * dt,
+				),
+			);
+		}
+		this.lastUpdateAt = now;
 	}
 
 	drawFrame(camera?: Camera): number {
 		const { ctx } = this;
 		const t = performance.now();
+
 		const view = ctx.currentTexture.createView();
-		let cleared = false;
-		for (let i = 0; i < this.entities.length; i++) {
-			const { transform, mesh } = this.entities[i];
-			const model = i === 1 ? transform : multiply(rotation(0, performance.now() / 1000.0, 0), transform);
-			this.wireframePipeline.draw(view, camera || this.camera, model, mesh, !cleared);
-			cleared = true;
-		}
+		this.wireframePipeline.drawEntities(view, camera || this.camera, this.entities);
 		return (performance.now() - t) / 1000;
 	}
 
 	async draw(camera?: Camera) {
 		return new Promise(resolve =>
-			requestAnimationFrame(() =>
-				resolve(this.drawFrame(camera))
-			));
+			requestAnimationFrame(() => {
+				this.updateModels();
+				resolve(this.drawFrame(camera));
+			}));
 	}
 }
 

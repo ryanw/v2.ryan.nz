@@ -25,7 +25,7 @@ async function main() {
 		if (!(el instanceof HTMLCanvasElement)) return;
 		if (!el?.parentElement) return;
 		const { clientWidth, clientHeight } = el.parentElement;
-		const div = 3;
+		const div = 2;
 		const w = clientWidth / div | 0;
 		const h = clientHeight / div | 0;
 
@@ -54,7 +54,7 @@ async function main() {
 
 		const rotation: Vector2 = [0.0, 0.0];
 		const velocity: Vector3 = [0.0, 0.0, 0.0];
-		const speed = 4.0 * dt;
+		const speed = 10.0 * dt;
 		const rotSpeed = 1.0 / 1000.0;
 		
 		if (inputHandler.held('a')) {

@@ -29,6 +29,7 @@ struct FragmentOut {
 	@location(0) color: vec4<f32>,
 }
 
+
 @group(0) @binding(0)
 var<uniform> u: Uniforms;
 
@@ -37,9 +38,13 @@ fn vs_main(in: WireVertex) -> VertexOut {
 	var out: VertexOut;
 	let mv = u.camera.view * u.camera.model;
 	let mvp = u.camera.projection * mv;
-	let normal = (u.camera.model * vec4(in.normal, 0.0)).xyz;
+
+	let worldPosition = u.camera.model * vec4(in.position, 1.0);
+	let position = mvp * vec4(in.position, 1.0);
+	let normal = normalize((u.camera.model * vec4(in.normal, 0.0)).xyz);
 	out.barycentric = in.barycentric;
-	out.position = mvp * vec4(in.position, 1.0);
+	out.position = position;
+	out.worldPosition = worldPosition.xyz / worldPosition.w;
 	out.uv = in.barycentric.xy * 0.5 + 0.5;
 	out.normal = normal;
 	out.color = in.color;
@@ -50,21 +55,35 @@ fn vs_main(in: WireVertex) -> VertexOut {
 @fragment
 fn fs_main(in: VertexOut) -> FragmentOut {
 	var out: FragmentOut;
+	var color = vec4(1.0);
 
 	let p = in.position.xyz / in.position.w;
-	let lightPosition = vec3(10.0, 10.0, 10.0);
+	let lightPosition = vec3(0.0, 0.0, 0.0);
 	let lightDir = normalize(lightPosition - in.worldPosition);
+
+	let faceColor = in.color;
+
+	color = vec4(0.0);
 	let shade = 0.06 + clamp(dot(in.normal, lightDir), 0.0, 1.0);
 
-	let lineColor = vec4(0.0, 0.0, 0.0, 1.0);
-	let vertColor = vec4(1.0, 0.2, 0.1, 1.0);
-	//let faceColor = vec4(0.2, 0.7, 0.6, 1.0);
-	let faceColor = vec4(0.6, 0.01, 0.3, 1.0);
-	let edge = edgeDistance(in.barycentric, 1.0, 1.0);
+	let s = 1.0;
+	let div = 1.0;
 
-	let color = mix(lineColor, in.color, edge);
+	var ditherMatrix = mat4x4(
+		vec4(0.0000, 0.5000, 0.1250, 0.6250),
+		vec4(0.7500, 0.2500, 0.8750, 0.3750),
+		vec4(0.1875, 0.6875, 0.0625, 0.5625),
+		vec4(0.9375, 0.4375, 0.8125, 0.3125)
+	);
 
-	out.color = vec4(color.rgb * shade, 1.0);
+	let ditherCoord = vec2(i32(in.position.x / div) % 4, i32(in.position.y / div) % 4);
+	let ditherVal = ditherMatrix[ditherCoord.x][ditherCoord.y];
+	let g = floor(shade * s + ditherVal) / s;
+
+	color = mix(vec4(0.0), faceColor, g);
+
+	// Premultiply the alpha
+	out.color = vec4(color.rgb * color.a, color.a);
 	return out;
 }
 
