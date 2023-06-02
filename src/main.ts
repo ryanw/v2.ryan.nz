@@ -25,14 +25,16 @@ async function main() {
 		if (!(el instanceof HTMLCanvasElement)) return;
 		if (!el?.parentElement) return;
 		const { clientWidth, clientHeight } = el.parentElement;
-		const div = 2;
+		const dpr = window.devicePixelRatio;
+
+		const div = 1;
 		const w = clientWidth / div | 0;
 		const h = clientHeight / div | 0;
 
-
 		el.style.width = `${w * div}px`;
 		el.style.height = `${h * div}px`;
-		ctx.resize(w, h);
+
+		ctx.resize(w * dpr, h * dpr);
 	}
 	updateCanvasSize();
 
