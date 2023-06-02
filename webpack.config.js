@@ -28,8 +28,8 @@ module.exports = {
 			// Typescript
 			{ test: /\.ts$/, use: 'ts-loader' },
 
-			// Shader files
-			{ test: /\.(glsl|wgsl)$/, use: ['raw-loader'] },
+			// Static files
+			{ test: /\.(glsl|wgsl|html|css)$/, use: ['raw-loader'] },
 		],
 	},
 	resolve: {

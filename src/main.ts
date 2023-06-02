@@ -2,6 +2,7 @@ import { Context } from './context';
 import { InputHandler } from './lib';
 import { Vector2, Vector3 } from './math';
 import { Spacewave } from './scenes/spacewave';
+import { attachUi } from './ui';
 
 /**
  * Application entry point
@@ -27,7 +28,7 @@ async function main() {
 		const { clientWidth, clientHeight } = el.parentElement;
 		const dpr = window.devicePixelRatio;
 
-		const div = 1;
+		const div = 2;
 		const w = clientWidth / div | 0;
 		const h = clientHeight / div | 0;
 
@@ -44,6 +45,11 @@ async function main() {
 
 	const inputHandler = new InputHandler(window);
 	const scene = new Spacewave(ctx);
+
+	if (el.parentNode) {
+		attachUi(scene);
+	}
+
 
 	let mouse = [0, 0];
 	let now = performance.now();

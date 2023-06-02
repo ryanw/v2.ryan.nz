@@ -2,8 +2,8 @@ import { Context } from './lib';
 import { ComposePipeline } from './pipelines/compose';
 
 export abstract class Scene {
-	protected ctx: Context;
-	protected composePipeline: ComposePipeline;
+	readonly ctx: Context;
+	readonly composePipeline: ComposePipeline;
 
 	constructor(ctx: Context) {
 		this.ctx = ctx;

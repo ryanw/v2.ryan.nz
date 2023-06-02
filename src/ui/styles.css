@@ -1,0 +1,23 @@
+:root {
+	--pad: 16px;
+}
+.ui {
+	position: absolute;
+	font-family: sans-serif;
+	padding: var(--pad);
+	z-index: 10;
+	background: rgba(50, 50, 50, 0.85);
+	width: 164px;
+	right: 0;
+	top: 0;
+	margin: 32px;
+	border-radius: 8px;
+}
+.ui ul {
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}
+.ui ul label, input[type="checkbox"] {
+	cursor: pointer;
+}
