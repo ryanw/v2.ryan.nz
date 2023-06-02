@@ -1,4 +1,4 @@
-import { Context, GBuffer } from './lib';
+import { Context } from './lib';
 import { ComposePipeline } from './pipelines/compose';
 
 export abstract class Scene {
@@ -8,9 +8,6 @@ export abstract class Scene {
 	constructor(ctx: Context) {
 		this.ctx = ctx;
 		this.composePipeline = new ComposePipeline(ctx);
-	}
-
-	drawToScreen(buffer: GBuffer) {
 	}
 
 	abstract draw(): Promise<void | unknown>;
