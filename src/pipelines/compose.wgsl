@@ -48,12 +48,12 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 
 	let colorPair = textureLoad(inColor, coord, 0);
 	let fg = (colorPair & vec4(0x0f));
-	let bg = ((colorPair & vec4(0xf0)) >> vec4(4u)) & vec4(0x0f);
+	let bg = (colorPair & vec4(0xf0)) >> vec4(4u);
 	let fgColor = vec4<f32>(fg) / 15.0;
 	let bgColor = vec4<f32>(bg) / 15.0;
 
 
-	let pos = textureLoad(inPosition, coord, 0).xyz;
+	let pos = textureLoad(inPosition, coord, 0);
 	if pos.x == 0.0 && pos.y == 0.0 && pos.z == 0.0 {
 		//return vec4(0.0, 0.0, 0.0, 1.0);
 	}
@@ -62,13 +62,17 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 
 
 	let lightPosition = vec3(0.0, 8.0, 40.0);
-	let lightDir = normalize(lightPosition - pos);
+	let lightDir = normalize(lightPosition - pos.xyz);
 	let shade = clamp(dot(normal, lightDir), 0.0, 1.0);
 
 	switch (u.shading) {
 		// None
 		case 0: {
-			return fgColor;
+			if (coord.x + coord.y) % 2 == 0 {
+				return fgColor;
+			} else {
+				return bgColor;
+			}
 		}
 
 		// Flat shading
@@ -88,9 +92,12 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 
 		// Position
 		case 3: {
-			let s = 1.0;
-			let r = 128.0;
-			return vec4(((pos.xyz / s) % r) / r, 1.0);
+			return vec4(abs(pos.xyz / 100.0), 1.0);
+		}
+
+		// Normal
+		case 4: {
+			return vec4(vec3(normal.xyz * 0.5 + 0.5), 1.0);
 		}
 
 		default: {

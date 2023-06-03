@@ -136,6 +136,7 @@ export class DitherPipeline extends Pipeline {
 
 		const depthView = gbuffer.depth.createView();
 		const clearValue = { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
+		const skyColor = { r: 0x44, g: 0x66, b: 0xaa, a: 0x0f };
 		const encoder = device.createCommandEncoder();
 
 		let loadOp: 'clear' | 'load' = 'clear';
@@ -143,7 +144,7 @@ export class DitherPipeline extends Pipeline {
 			const { transform, mesh } = entities[i];
 			const renderPass = encoder.beginRenderPass({
 				colorAttachments: [
-					{ view: gbuffer.albedo.createView(), clearValue, loadOp, storeOp: 'store' },
+					{ view: gbuffer.albedo.createView(), clearValue: skyColor, loadOp, storeOp: 'store' },
 					{ view: gbuffer.position.createView(), clearValue, loadOp, storeOp: 'store' },
 					{ view: gbuffer.normal.createView(), clearValue, loadOp, storeOp: 'store' },
 				],

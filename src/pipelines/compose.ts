@@ -8,6 +8,7 @@ export enum Shading {
 	Flat,
 	Dithered,
 	Position,
+	Normal,
 }
 
 export interface Options {

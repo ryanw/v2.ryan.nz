@@ -56,7 +56,7 @@ export class Spacewave extends Scene {
 		this.entities = [];
 
 		const rn = Math.random;
-		const randomColor = () => [rn() * 0.7, rn() * 0.7, rn() * 0.7, 1.0] as Color;
+		const randomColor = () => [rn() * 0.7, rn() * 0.7, rn() * 0.7, 0.1] as Color;
 
 		for (let i = 0; i < 200; i++) {
 			const dist = 200.0;
@@ -71,10 +71,9 @@ export class Spacewave extends Scene {
 				mesh: new Mesh(ctx, vertices),
 			});
 		}
-
 		const fgColor = randomColor();
 		const bgColor = randomColor();
-		const vertices = icosahedron.map(v => ({ ...v, fgColor, bgColor }));
+		const vertices = icosahedron.map(v => ({ ...v, fgColor: [1, 0, 1, 0.1] as Color, bgColor: [0, 1, 1, 0.1] as Color }));
 		this.entities.push({
 			transform: translation(0, 7.6, 14),
 			rotation: [0, 0, 0],
@@ -216,7 +215,7 @@ function subdividedPlane(divisions: number = 1, scale: number = 1.0): Array<Vert
 		uv: [0.0, 0.0],
 		normal: [0.0, 0.0, 0.0],
 		fgColor: [0.05, 0.7, 0.1, 1.0],
-		bgColor: [0.7, 0.8, 0.05, 1.0],
+		bgColor: [0.7, 0.8, 0.05, 0.0],
 	};
 
 	const d = divisions / 2;

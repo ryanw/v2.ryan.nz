@@ -13,7 +13,7 @@ async function main() {
 	if (!(el instanceof HTMLCanvasElement)) {
 		throw new Error("Couldn't find canvas");
 	}
-	el.tabIndex = 1;
+	el.tabIndex = -1;
 
 	let ctx: Context;
 	try {
@@ -29,7 +29,7 @@ async function main() {
 		const { clientWidth, clientHeight } = el.parentElement;
 		const dpr = window.devicePixelRatio;
 
-		const div = 1;
+		const div = 2;
 		const w = clientWidth / div | 0;
 		const h = clientHeight / div | 0;
 

@@ -22,7 +22,7 @@ export function attachUi(scene: Spacewave) {
 	const flat = el.querySelector<HTMLInputElement>('input#flat')!;
 	flat.addEventListener('click', (e: MouseEvent) => {
 		if ((e.target as HTMLInputElement).checked) {
-			scene.composePipeline.options.shading = 1;
+			scene.composePipeline.options.shading = Shading.Flat;
 		}
 		else {
 			scene.composePipeline.options.shading = 0;
@@ -32,7 +32,7 @@ export function attachUi(scene: Spacewave) {
 	const dither = el.querySelector<HTMLInputElement>('input#dither')!;
 	dither.addEventListener('click', (e: MouseEvent) => {
 		if ((e.target as HTMLInputElement).checked) {
-			scene.composePipeline.options.shading = 2;
+			scene.composePipeline.options.shading = Shading.Dithered;
 		}
 		else {
 			scene.composePipeline.options.shading = 0;
@@ -40,10 +40,19 @@ export function attachUi(scene: Spacewave) {
 		update();
 	});
 	const position = el.querySelector<HTMLInputElement>('input#position')!;
-	position.parentElement!.style.display = 'none';
 	position.addEventListener('click', (e: MouseEvent) => {
 		if ((e.target as HTMLInputElement).checked) {
-			scene.composePipeline.options.shading = 3;
+			scene.composePipeline.options.shading = Shading.Position;
+		}
+		else {
+			scene.composePipeline.options.shading = 0;
+		}
+		update();
+	});
+	const normal = el.querySelector<HTMLInputElement>('input#normal')!;
+	normal.addEventListener('click', (e: MouseEvent) => {
+		if ((e.target as HTMLInputElement).checked) {
+			scene.composePipeline.options.shading = Shading.Normal;
 		}
 		else {
 			scene.composePipeline.options.shading = 0;
@@ -68,6 +77,9 @@ function updateInputs(el: HTMLElement, state: Options) {
 
 	const position = el.querySelector<HTMLInputElement>('input#position')!;
 	position.checked = state.shading === Shading.Position;
+
+	const normal = el.querySelector<HTMLInputElement>('input#normal')!;
+	normal.checked = state.shading === Shading.Normal;
 
 	const clash = el.querySelector<HTMLInputElement>('input#clash')!;
 	clash.checked = state.pixelated;

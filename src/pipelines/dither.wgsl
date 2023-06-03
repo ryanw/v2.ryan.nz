@@ -67,7 +67,7 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 	let lightDir = normalize(lightPosition - in.worldPosition);
 
 	color = vec4(0.0);
-	let shade = 0.07 + clamp(dot(in.normal, lightDir), 0.0, 1.0);
+	let shade = clamp(dot(in.normal, lightDir), 0.0, 1.0);
 
 	// Premultiply the alpha
 	//out.color = vec4(color.rgb * color.a, color.a);
