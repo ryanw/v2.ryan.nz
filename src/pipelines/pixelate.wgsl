@@ -3,20 +3,20 @@ struct Uniforms {
 }
 
 @group(0) @binding(0)
-var texIn: texture_2d<f32>;
+var texIn: texture_2d<u32>;
 
 @group(0) @binding(1)
 var depth: texture_2d<f32>;
 
 @group(0) @binding(2)
-var texOut: texture_storage_2d<rgba8unorm, write>;
+var texOut: texture_storage_2d<rgba8uint, write>;
 
 @group(0) @binding(3)
 var<uniform> u: Uniforms;
 
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-	var color = vec4(0.0);
+	var color = vec4(0u);
 	let size = vec2<i32>(textureDimensions(texIn));
 
 	var hit = 1.0;

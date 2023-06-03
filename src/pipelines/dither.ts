@@ -17,7 +17,7 @@ export interface Vertex {
 	barycentric: Point3;
 	normal: Vector3;
 	uv: Point2;
-	color: Vector4;
+	fgColor: Vector4; bgColor: Vector4;
 }
 
 
@@ -65,7 +65,15 @@ export class DitherPipeline extends Pipeline {
 			},
 			{
 				attributes: [{
-					shaderLocation: 4, // color
+					shaderLocation: 4, // fg color
+					offset: 0,
+					format: 'float32x4',
+				}],
+				arrayStride: 16,
+			},
+			{
+				attributes: [{
+					shaderLocation: 5, // bg color
 					offset: 0,
 					format: 'float32x4',
 				}],
@@ -83,9 +91,9 @@ export class DitherPipeline extends Pipeline {
 
 		const targets: Array<GPUColorTargetState> = [
 			// Colour
-			{ format: 'rgba8unorm' },
-			// Pixel
-			{ format: 'r8uint' },
+			{ format: 'rgba8uint' },
+			// Position
+			{ format: 'rgba32float' },
 			// Normal
 			{ format: 'rgba16float' },
 		];
@@ -97,7 +105,7 @@ export class DitherPipeline extends Pipeline {
 			fragment: { module, entryPoint: 'fs_main', targets },
 			primitive: { topology: 'triangle-list' },
 			depthStencil: {
-				format: 'depth32float',
+				format: 'depth16unorm',
 				depthWriteEnabled: true,
 				depthCompare: 'less',
 			},
@@ -136,7 +144,7 @@ export class DitherPipeline extends Pipeline {
 			const renderPass = encoder.beginRenderPass({
 				colorAttachments: [
 					{ view: gbuffer.albedo.createView(), clearValue, loadOp, storeOp: 'store' },
-					{ view: gbuffer.pixel.createView(), clearValue, loadOp, storeOp: 'store' },
+					{ view: gbuffer.position.createView(), clearValue, loadOp, storeOp: 'store' },
 					{ view: gbuffer.normal.createView(), clearValue, loadOp, storeOp: 'store' },
 				],
 				depthStencilAttachment: {
@@ -168,7 +176,8 @@ export class DitherPipeline extends Pipeline {
 			renderPass.setVertexBuffer(1, mesh.buffers.barycentric);
 			renderPass.setVertexBuffer(2, mesh.buffers.uv);
 			renderPass.setVertexBuffer(3, mesh.buffers.normal);
-			renderPass.setVertexBuffer(4, mesh.buffers.color);
+			renderPass.setVertexBuffer(4, mesh.buffers.fgColor);
+			renderPass.setVertexBuffer(5, mesh.buffers.bgColor);
 			renderPass.draw(mesh.vertices.length);
 			renderPass.end();
 		}

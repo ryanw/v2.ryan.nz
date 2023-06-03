@@ -3,9 +3,8 @@ import { Context } from './context';
 export class GBuffer {
 	ctx: Context;
 	size: [number, number];
-	pixel: GPUTexture;
+	position: GPUTexture;
 	albedo: GPUTexture;
-	pixelatedAlbedo: GPUTexture;
 	normal: GPUTexture;
 	depth: GPUTexture;
 
@@ -14,16 +13,14 @@ export class GBuffer {
 
 		this.size = [1, 1];
 
-		// 1 bit pixels
-		this.pixel = createTexture(ctx, 'r8uint');
-		// RGBA colour
-		this.albedo = createTexture(ctx, 'rgba8unorm');
-		// RGBA colour
-		this.pixelatedAlbedo = createTexture(ctx, 'rgba8unorm');
+		// World position Position
+		this.position = createTexture(ctx, 'rgba32float');
+		// 2x 16bit RGBA colours
+		this.albedo = createTexture(ctx, 'rgba8uint');
 		// Normal vector
 		this.normal = createTexture(ctx, 'rgba16float');
 		// Depth buffer
-		this.depth = createTexture(ctx, 'depth32float');
+		this.depth = createTexture(ctx, 'depth16unorm');
 	}
 
 	resize(width: number, height: number) {
@@ -31,11 +28,10 @@ export class GBuffer {
 			return;
 		}
 		this.size = [width, height];
-		this.pixel = createTexture(this.ctx, 'r8uint', [width, height], "Pixel Texture");
-		this.albedo = createTexture(this.ctx, 'rgba8unorm', [width, height], "Albedo Texture");
-		this.pixelatedAlbedo = createTexture(this.ctx, 'rgba8unorm', [width, height], "Pixelated Albedo Texture");
+		this.position = createTexture(this.ctx, 'rgba32float', [width, height], "Position Texture");
+		this.albedo = createTexture(this.ctx, 'rgba8uint', [width, height], "Albedo Texture");
 		this.normal = createTexture(this.ctx, 'rgba16float', [width, height], "Normal Texture");
-		this.depth = createTexture(this.ctx, 'depth32float', [width, height], "Depth Texture");
+		this.depth = createTexture(this.ctx, 'depth16unorm', [width, height], "Depth Texture");
 	}
 }
 
@@ -45,7 +41,7 @@ function createTexture({ device }: Context, format: GPUTextureFormat, size: GPUE
 		GPUTextureUsage.TEXTURE_BINDING |
 		GPUTextureUsage.COPY_DST;
 
-	if (format === 'rgba8unorm') {
+	if (format === 'rgba8unorm' || format === 'rgba8uint') {
 		usage |= GPUTextureUsage.STORAGE_BINDING;
 	}
 	return device.createTexture({

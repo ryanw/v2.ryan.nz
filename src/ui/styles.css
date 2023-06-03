@@ -1,17 +1,24 @@
 :root {
 	--pad: 16px;
 }
+html {
+	font-family: sans-serif;
+
+}
+
+.instructions, .ui {
+	background: rgba(50, 50, 50, 0.85);
+	margin: 32px;
+	border-radius: 8px;
+}
+
 .ui {
 	position: absolute;
-	font-family: sans-serif;
-	padding: var(--pad);
 	z-index: 10;
-	background: rgba(50, 50, 50, 0.85);
 	width: 164px;
 	right: 0;
 	top: 0;
-	margin: 32px;
-	border-radius: 8px;
+	padding: var(--pad);
 }
 .ui ul {
 	padding: 0;
@@ -20,4 +27,15 @@
 }
 .ui ul label, input[type="checkbox"] {
 	cursor: pointer;
+}
+.instructions {
+	position: absolute;
+	z-index: 10;
+	width: 164px;
+	bottom: 32px;
+	text-align: center;
+	width: 400px;
+	left: 50%;
+	margin-left: -200px;
+	line-height: 1.5em;
 }

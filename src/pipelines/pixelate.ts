@@ -5,6 +5,7 @@ import SHADER_SOURCE from './pixelate.wgsl';
 
 export class PixelatePipeline extends Pipeline {
 	uniformBuffer: GPUBuffer;
+	texture: GPUTexture;
 	pipeline: GPUComputePipeline;
 
 	constructor(ctx: Context) {
@@ -14,6 +15,16 @@ export class PixelatePipeline extends Pipeline {
 		this.uniformBuffer = device.createBuffer({
 			size: 4,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
+
+		this.texture = device.createTexture({
+			format: 'rgba8uint',
+			size: [1, 1],
+			usage:
+				GPUTextureUsage.RENDER_ATTACHMENT |
+				GPUTextureUsage.TEXTURE_BINDING |
+				GPUTextureUsage.COPY_DST |
+				GPUTextureUsage.STORAGE_BINDING,
 		});
 
 		const module = device.createShaderModule({ code: SHADER_SOURCE });
@@ -27,10 +38,22 @@ export class PixelatePipeline extends Pipeline {
 	pixelateColor(gbuffer: GBuffer, amount: number) {
 		const { device } = this.ctx;
 		const { width, height } = gbuffer.albedo;
+		if (width !== this.texture.width || height !== this.texture.height) {
+			this.texture = device.createTexture({
+				label: 'Pixelated Albedo Texture',
+				format: 'rgba8uint',
+				size: [width, height],
+				usage:
+					GPUTextureUsage.RENDER_ATTACHMENT |
+					GPUTextureUsage.TEXTURE_BINDING |
+					GPUTextureUsage.COPY_DST |
+					GPUTextureUsage.STORAGE_BINDING,
+			});
+		}
 
 		const depthView = gbuffer.depth.createView();
 		const inView = gbuffer.albedo.createView();
-		const outView = gbuffer.pixelatedAlbedo.createView();
+		const outView = this.texture.createView();
 
 		const commandEncoder = device.createCommandEncoder();
 
@@ -63,6 +86,10 @@ export class PixelatePipeline extends Pipeline {
 		pass.end();
 
 		device.queue.submit([commandEncoder.finish()]);
+
+		const pixelated = this.texture;
+		this.texture = gbuffer.albedo;
+		gbuffer.albedo = pixelated;
 	}
 }
 

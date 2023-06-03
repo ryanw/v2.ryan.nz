@@ -28,7 +28,7 @@ export class Camera {
 
 	set aspect(a: number) {
 		this._aspect = a;
-		this._projection = perspective(a, 45.0, 1.0, 1000.0);
+		this._projection = perspective(a, 45.0, 1.0, 500.0);
 	}
 
 	/**

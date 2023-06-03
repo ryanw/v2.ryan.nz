@@ -5,8 +5,9 @@ import SHADER_SOURCE from './compose.wgsl';
 
 export enum Shading {
 	None = 0,
-	Solid = 1,
-	Dithered = 2,
+	Flat,
+	Dithered,
+	Position,
 }
 
 export interface Options {
@@ -19,7 +20,7 @@ export class ComposePipeline extends Pipeline {
 	uniformBuffer: GPUBuffer;
 	options: Options = {
 		pixelated: true,
-		shading: Shading.Dithered
+		shading: Shading.Dithered,
 	};
 
 	constructor(ctx: Context) {
@@ -67,10 +68,9 @@ export class ComposePipeline extends Pipeline {
 			layout: this.pipeline.getBindGroupLayout(0),
 			entries: [
 				{ binding: 0, resource: buffer.albedo.createView() },
-				{ binding: 1, resource: buffer.pixelatedAlbedo.createView() },
-				{ binding: 2, resource: buffer.pixel.createView() },
-				{ binding: 3, resource: buffer.normal.createView() },
-				{ binding: 4, resource: { buffer: this.uniformBuffer } },
+				{ binding: 1, resource: buffer.position.createView() },
+				{ binding: 2, resource: buffer.normal.createView() },
+				{ binding: 3, resource: { buffer: this.uniformBuffer } },
 			],
 		});
 

@@ -25,17 +25,16 @@ export class InputHandler {
 	};
 
 	onMouseDown = (e: MouseEvent) => {
-		this.mousePosition = [e.clientX, e.clientY];
 		this.mouseButtons.add(e.button);
 	};
 
-	onMouseUp = (e: MouseEvent) => {
-		this.mousePosition = [e.clientX, e.clientY];
+	onWindowMouseUp = (e: MouseEvent) => {
 		this.mouseButtons.delete(e.button);
 	};
 
-	onMouseMove = (e: MouseEvent) => {
-		this.mousePosition = [e.clientX, e.clientY];
+	onWindowMouseMove = (e: MouseEvent) => {
+		this.mousePosition[0] += e.movementX;
+		this.mousePosition[1] += e.movementY;
 	};
 
 	listen() {
@@ -44,16 +43,16 @@ export class InputHandler {
 		target.addEventListener('keydown', this.onKeyDown);
 		target.addEventListener('keyup', this.onKeyUp);
 		target.addEventListener('mousedown', this.onMouseDown);
-		window.addEventListener('mousemove', this.onMouseMove);
-		window.addEventListener('mouseup', this.onMouseUp);
+		window.addEventListener('mouseup', this.onWindowMouseUp);
+		window.addEventListener('mousemove', this.onWindowMouseMove);
 	}
 
 	unlisten() {
 		const target = this.target as HTMLElement;
 		target.removeEventListener('keydown', this.onKeyDown);
 		target.removeEventListener('keyup', this.onKeyUp);
-		target.addEventListener('mouseup', this.onMouseUp);
-		window.removeEventListener('mousemove', this.onMouseMove);
-		window.removeEventListener('mouseup', this.onMouseUp);
+		target.removeEventListener('mousedown', this.onMouseDown);
+		window.removeEventListener('mouseup', this.onWindowMouseUp);
+		window.removeEventListener('mousemove', this.onWindowMouseMove);
 	}
 }

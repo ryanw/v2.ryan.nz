@@ -4,7 +4,7 @@ import { Context } from '../context';
 import { Scene } from '../scene';
 import { cross, normalize, subtract } from '../math/vectors';
 import { Mesh } from '../mesh';
-import { multiply, rotation, scaling, translation } from '../math/transform';
+import { identity, multiply, rotation, scaling, translation } from '../math/transform';
 import { Entity, Vertex, DitherPipeline as DitherPipeline } from '../pipelines/dither';
 import { Color } from '../lib';
 import { ComposePipeline } from '../pipelines/compose';
@@ -17,6 +17,7 @@ export class Spacewave extends Scene {
 	ditherPipeline: DitherPipeline;
 	composePipeline: ComposePipeline;
 	pixelatePipeline: PixelatePipeline;
+	heightmap: GPUTexture;
 	gbuffer: GBuffer;
 	lastUpdateAt = performance.now();
 
@@ -25,6 +26,12 @@ export class Spacewave extends Scene {
 		this.ditherPipeline = new DitherPipeline(ctx);
 		this.composePipeline = new ComposePipeline(ctx);
 		this.pixelatePipeline = new PixelatePipeline(ctx);
+		this.heightmap = ctx.device.createTexture({
+			label: 'Heightmap Texture',
+			size: [1024, 1024],
+			format: 'r8unorm',
+			usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+		});
 		this.gbuffer = new GBuffer(ctx);
 
 		const baseTriangle = [
@@ -39,7 +46,8 @@ export class Spacewave extends Scene {
 				barycentric: baseTriangle[i % 3].barycentric,
 				uv: baseTriangle[i % 3].uv,
 				normal: [0.0, 0.0, 0.0],
-				color: [0.0, 1.0, 1.0, 0.5],
+				fgColor: [0.0, 1.0, 1.0, 0.5],
+				bgColor: [1.0, 1.0, 0.0, 0.5],
 			} as Vertex))
 		).flat();
 
@@ -50,12 +58,13 @@ export class Spacewave extends Scene {
 		const rn = Math.random;
 		const randomColor = () => [rn() * 0.7, rn() * 0.7, rn() * 0.7, 1.0] as Color;
 
-		for (let i = 0; i < 20; i++) {
-			const dist = 50.0;
-			const position: Point3 = [(rn() - 0.5) * dist, rn() * dist / 3, (rn() - 0.5) * dist];
+		for (let i = 0; i < 200; i++) {
+			const dist = 200.0;
+			const position: Point3 = [(rn() - 0.5) * dist, (rn() - 0.3) * 30.0, (rn() - 0.5) * dist];
 			const rotation: Point3 = [(rn() - 0.5), (rn() - 0.5), (rn() - 0.5)];
-			const color = randomColor();
-			const vertices = icosahedron.map(v => ({ ...v, color }));
+			const fgColor = randomColor();
+			const bgColor = randomColor();
+			const vertices = icosahedron.map(v => ({ ...v, fgColor, bgColor }));
 			this.entities.push({
 				transform: translation(...position),
 				rotation,
@@ -63,8 +72,9 @@ export class Spacewave extends Scene {
 			});
 		}
 
-		const color = randomColor();
-		const vertices = icosahedron.map(v => ({ ...v, color }));
+		const fgColor = randomColor();
+		const bgColor = randomColor();
+		const vertices = icosahedron.map(v => ({ ...v, fgColor, bgColor }));
 		this.entities.push({
 			transform: translation(0, 7.6, 14),
 			rotation: [0, 0, 0],
@@ -74,10 +84,11 @@ export class Spacewave extends Scene {
 		// Terrain
 		{
 			const position: Point3 = [0, 0, 0];
-			const color = randomColor();
-			const vertices = subdividedPlane(128);
+			const fgColor = randomColor();
+			const bgColor = randomColor();
+			const vertices = subdividedPlane(256, 512.0);
 			this.entities.push({
-				transform: multiply(scaling(30.0), translation(...position), rotation(Math.PI / -2, 0, 0)),
+				transform: identity(),
 				rotation: [0, 0, 0],
 				mesh: new Mesh(ctx, vertices),
 			});
@@ -88,14 +99,15 @@ export class Spacewave extends Scene {
 
 	updateModels() {
 		const now = performance.now();
+		const s = 5.0;
 		const dt = (now - this.lastUpdateAt) / 1000.0;
 		for (const entity of this.entities) {
 			entity.transform = multiply(
 				entity.transform,
 				rotation(
-					entity.rotation[0] * dt,
-					entity.rotation[1] * dt,
-					entity.rotation[2] * dt,
+					entity.rotation[0] * dt * s,
+					entity.rotation[1] * dt * s,
+					entity.rotation[2] * dt * s,
 				),
 			);
 		}
@@ -109,7 +121,10 @@ export class Spacewave extends Scene {
 		this.gbuffer.resize(w, h);
 
 		this.ditherPipeline.drawEntities(this.gbuffer, camera || this.camera, this.entities);
-		this.pixelatePipeline.pixelateColor(this.gbuffer, 8);
+		// FIXME FIXME this option should be moved
+		if (this.composePipeline.options.pixelated) {
+			this.pixelatePipeline.pixelateColor(this.gbuffer, 8);
+		}
 
 		const view = ctx.currentTexture.createView();
 		this.composePipeline.compose(view, this.gbuffer);
@@ -171,9 +186,9 @@ const QUAD_VERTS = [
 ];
 
 function noise2d(x: number, y: number): number {
-	const m = 1.0 / 20.0;
-	const d = 10.0;
-	return (Math.sin(x * m) * Math.sin(y * m)) / d;
+	const d = 8.0;
+	const m = 4.0;
+	return (Math.sin(x / d) * Math.sin(y / d)) * m;
 }
 
 function calculateNormals(vertices: Array<Vertex>) {
@@ -192,7 +207,7 @@ function calculateNormals(vertices: Array<Vertex>) {
 	}
 }
 
-function subdividedPlane(divisions: number = 1): Array<Vertex> {
+function subdividedPlane(divisions: number = 1, scale: number = 1.0): Array<Vertex> {
 	let vertices: Array<Vertex> = [];
 
 	const baseTriangle = {
@@ -200,7 +215,8 @@ function subdividedPlane(divisions: number = 1): Array<Vertex> {
 		barycentric: [1.0, 0.0, 0.0],
 		uv: [0.0, 0.0],
 		normal: [0.0, 0.0, 0.0],
-		color: [0.0, 1.0, 1.0, 0.5],
+		fgColor: [0.05, 0.7, 0.1, 1.0],
+		bgColor: [0.7, 0.8, 0.05, 1.0],
 	};
 
 	const d = divisions / 2;
@@ -210,24 +226,25 @@ function subdividedPlane(divisions: number = 1): Array<Vertex> {
 			const g = 0.0;
 			const sx = (s * 2 + g) * x;
 			const sy = (s * 2 + g) * y;
-			const z = 0;
-			vertices = vertices.concat([
-				{ ...baseTriangle, position: [sx + -s, sy + -s, z], uv: [0, 0] } as Vertex,
-				{ ...baseTriangle, position: [sx + s, sy + -s, z], uv: [1, 0] } as Vertex,
-				{ ...baseTriangle, position: [sx + -s, sy + s, z], uv: [0, 1] } as Vertex,
+			vertices.push(
+				{ ...baseTriangle, position: [sx + -s, 0, sy + s], uv: [0, 1] } as Vertex,
+				{ ...baseTriangle, position: [sx + s, 0, sy + -s], uv: [1, 0] } as Vertex,
+				{ ...baseTriangle, position: [sx + -s, 0, sy + -s], uv: [0, 0] } as Vertex,
 
-				{ ...baseTriangle, position: [sx + -s, sy + s, z], uv: [0, 1] } as Vertex,
-				{ ...baseTriangle, position: [sx + s, sy + -s, z], uv: [1, 0] } as Vertex,
-				{ ...baseTriangle, position: [sx + s, sy + s, z], uv: [1, 1] } as Vertex,
-			]);
+				{ ...baseTriangle, position: [sx + s, 0, sy + s], uv: [1, 1] } as Vertex,
+				{ ...baseTriangle, position: [sx + s, 0, sy + -s], uv: [1, 0] } as Vertex,
+				{ ...baseTriangle, position: [sx + -s, 0, sy + s], uv: [0, 1] } as Vertex,
+			);
 		}
 	}
 
 	for (const v of vertices) {
-		v.position[2] = noise2d(v.position[0] * divisions, v.position[1] * divisions);
-		//v.color = [v.uv[0], v.uv[1], 0.0, 1.0];
+		v.position[0] *= scale;
+		v.position[2] *= scale;
+		v.position[1] = noise2d(v.position[0], v.position[2]);
+		//v.fgColor = [v.uv[0], v.uv[1], 0.0, 1.0];
+		//v.bgColor = [v.uv[0], v.uv[1], 0.0, 1.0];
 	}
-
 	calculateNormals(vertices);
 	return vertices;
 }

@@ -2,7 +2,7 @@ import { Context } from '../context';
 import template from './template.html';
 import styles from './styles.css';
 import { Spacewave } from '../scenes/spacewave';
-import { Options } from '../pipelines/compose';
+import { Options, Shading } from '../pipelines/compose';
 
 export function attachUi(scene: Spacewave) {
 	const { ctx } = scene;
@@ -39,6 +39,17 @@ export function attachUi(scene: Spacewave) {
 		}
 		update();
 	});
+	const position = el.querySelector<HTMLInputElement>('input#position')!;
+	position.parentElement!.style.display = 'none';
+	position.addEventListener('click', (e: MouseEvent) => {
+		if ((e.target as HTMLInputElement).checked) {
+			scene.composePipeline.options.shading = 3;
+		}
+		else {
+			scene.composePipeline.options.shading = 0;
+		}
+		update();
+	});
 	const clash = el.querySelector<HTMLInputElement>('input#clash')!;
 	clash.addEventListener('click', (e: MouseEvent) => {
 		scene.composePipeline.options.pixelated = (e.target as HTMLInputElement).checked;
@@ -50,10 +61,13 @@ export function attachUi(scene: Spacewave) {
 
 function updateInputs(el: HTMLElement, state: Options) {
 	const flat = el.querySelector<HTMLInputElement>('input#flat')!;
-	flat.checked = state.shading === 1;
+	flat.checked = state.shading === Shading.Flat;
 
 	const dither = el.querySelector<HTMLInputElement>('input#dither')!;
-	dither.checked = state.shading === 2;
+	dither.checked = state.shading === Shading.Dithered;
+
+	const position = el.querySelector<HTMLInputElement>('input#position')!;
+	position.checked = state.shading === Shading.Position;
 
 	const clash = el.querySelector<HTMLInputElement>('input#clash')!;
 	clash.checked = state.pixelated;
