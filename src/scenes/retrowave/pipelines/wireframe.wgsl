@@ -14,20 +14,25 @@ struct Uniforms {
 
 struct WireVertex {
 	@location(0) position: vec3<f32>,
-	@location(1) normal: vec3<f32>,
-	@location(2) color: vec4<f32>,
+	@location(1) barycentric: vec3<f32>,
+	@location(2) normal: vec3<f32>,
+	@location(3) wireColor: vec4<f32>,
+	@location(4) faceColor: vec4<f32>,
 }
 
 struct VertexOut {
 	@builtin(position) position: vec4<f32>,
 	@location(0) worldPosition: vec3<f32>,
-	@location(1) normal: vec3<f32>,
-	@location(2) color: vec4<f32>,
+	@location(1) barycentric: vec3<f32>,
+	@location(2) normal: vec3<f32>,
+	@location(3) wireColor: vec4<f32>,
+	@location(4) faceColor: vec4<f32>,
 }
 
 struct FragmentOut {
 	@builtin(frag_depth) depth: f32,
 	@location(0) color: vec4<f32>,
+	@location(1) bloom: vec4<f32>,
 }
 
 @group(0) @binding(0)
@@ -50,7 +55,9 @@ fn vs_main(in: WireVertex) -> VertexOut {
 	out.position = position;
 	out.worldPosition = worldPosition.xyz / worldPosition.w;
 	out.normal = normal;
-	out.color = in.color;
+	out.barycentric = in.barycentric;
+	out.wireColor = in.wireColor;
+	out.faceColor = in.faceColor;
 	return out;
 }
 
@@ -67,7 +74,22 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 	color = vec4(0.0);
 
 
-	out.color = in.color;
+	let g = edgeDistance(in.barycentric, 2.0, 0.8);
+
+	var wire = in.wireColor;
+	wire = mix(wire, vec4(0.8, 0.0, 0.7, 1.0), sin((u.t * 2.0) + in.worldPosition.z));
+
+	out.color = mix(wire, in.faceColor, g);
+	out.bloom = mix(wire, vec4(0.0), g);
+
 	out.depth = in.position.z;
 	return out;
+}
+
+fn edgeDistance(barycentric: vec3<f32>, thickness: f32, s: f32) -> f32 {
+	let dx = dpdx(barycentric);
+	let dy = dpdy(barycentric);
+	let d = sqrt(dx * dx + dy * dy) * thickness;
+	let a = smoothstep(d * s, d, barycentric);
+	return min(min(a.x, a.y), a.z);
 }

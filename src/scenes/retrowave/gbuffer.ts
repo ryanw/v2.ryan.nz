@@ -8,6 +8,7 @@ export class GBuffer {
 	size: [number, number];
 
 	albedo: GPUTexture;
+	bloom: GPUTexture;
 	depth: GPUTexture;
 
 	constructor(ctx: Context) {
@@ -17,6 +18,7 @@ export class GBuffer {
 
 		// RGBA Colors
 		this.albedo = createTexture(ctx, 'rgba8unorm');
+		this.bloom = createTexture(ctx, 'rgba8unorm');
 		this.depth = createTexture(ctx, DEPTH_FORMAT);
 	}
 
@@ -26,6 +28,7 @@ export class GBuffer {
 		}
 		this.size = [width, height];
 		this.albedo = createTexture(this.ctx, 'rgba8unorm', this.size, 'Retrowave GBuffer Albedo Texture');
+		this.bloom = createTexture(this.ctx, 'rgba8unorm', this.size, 'Retrowave GBuffer Bloom Texture');
 		this.depth = createTexture(this.ctx, DEPTH_FORMAT, this.size, 'Retrowave GBuffer Depth Texture');
 	}
 }

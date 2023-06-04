@@ -16,7 +16,10 @@ export class PixelatePipeline extends Pipeline {
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 		});
 
-		const module = device.createShaderModule({ code: SHADER_SOURCE });
+		const module = device.createShaderModule({
+			label: 'Pixelate Shader Module',
+			code: SHADER_SOURCE,
+		});
 		this.pipeline = device.createComputePipeline({
 			label: 'Pixelate Compute Pipeline',
 			layout: 'auto',

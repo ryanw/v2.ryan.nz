@@ -10,6 +10,8 @@ struct Uniforms {
 @group(0) @binding(0)
 var inAlbedo: texture_2d<f32>;
 @group(0) @binding(1)
+var inBloom: texture_2d<f32>;
+@group(0) @binding(2)
 var<uniform> u: Uniforms;
 
 @vertex
@@ -34,10 +36,11 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	let coord = vec2<u32>(in.position.xy);
 
 	var albedo = textureLoad(inAlbedo, coord, 0);
+	var bloom = textureLoad(inBloom, coord, 0);
 
 	if false {
-		albedo += vec4(vec3(u.fog), 1.0);
+		albedo += vec4(vec3(u.fog), 1.0) * 0.0;
 	}
 
-	return albedo;
+	return albedo + bloom;
 }

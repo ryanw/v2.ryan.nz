@@ -13,8 +13,10 @@ export interface Entity {
 
 export interface WireVertex {
 	position: Point3;
+	barycentric: Point3;
 	normal: Vector3;
-	color: Vector4;
+	wireColor: Vector4;
+	faceColor: Vector4;
 }
 
 export class WireframePipeline extends Pipeline {
@@ -30,7 +32,7 @@ export class WireframePipeline extends Pipeline {
 		const { device } = ctx;
 
 		const module = device.createShaderModule({
-			label: 'Speccy Shader Module',
+			label: 'Wireframe Shader Module',
 			code: SHADER_SOURCE,
 		});
 
@@ -50,7 +52,12 @@ export class WireframePipeline extends Pipeline {
 			label: 'Wireframe Render Pipeline',
 			layout: 'auto',
 			vertex: { module, entryPoint: 'vs_main', buffers: VERTEX_BUFFER_LAYOUT },
-			fragment: { module, entryPoint: 'fs_main', targets: [{ format: 'rgba8unorm' }] },
+			fragment: { module, entryPoint: 'fs_main', targets: [
+				// Albedo
+				{ format: 'rgba8unorm' },
+				// Bloom
+				{ format: 'rgba8unorm' },
+			] },
 			primitive: { topology: 'triangle-list' },
 			depthStencil: {
 				format: 'depth16unorm',
@@ -83,9 +90,10 @@ export class WireframePipeline extends Pipeline {
 	draw(encoder: GPUCommandEncoder, gbuffer: GBuffer, entity: Entity, camera: Camera) {
 		const { device } = this.ctx;
 		const { mesh, transform } = entity;
-		const clearValue = { r: 1.0, g: 1.0, b: 0.0, a: 1.0 };
+		const clearValue = { r: 0.0, g: 0.0, b: 0.0, a: 1.0 };
 
 		const albedoView = gbuffer.albedo.createView();
+		const bloomView = gbuffer.bloom.createView();
 		const depthView = gbuffer.depth.createView();
 
 		// Update camera uniform
@@ -98,6 +106,7 @@ export class WireframePipeline extends Pipeline {
 		const passDescriptor: GPURenderPassDescriptor = {
 			colorAttachments: [
 				{ view: albedoView, clearValue, loadOp: 'clear', storeOp: 'store' },
+				{ view: bloomView, clearValue, loadOp: 'clear', storeOp: 'store' },
 			],
 			depthStencilAttachment: {
 				view: depthView,
@@ -112,8 +121,10 @@ export class WireframePipeline extends Pipeline {
 		pass.setBindGroup(0, this.entityBindGroup);
 		pass.setBindGroup(1, this.uniformBindGroup);
 		pass.setVertexBuffer(0, mesh.buffers.position);
-		pass.setVertexBuffer(1, mesh.buffers.normal);
-		pass.setVertexBuffer(2, mesh.buffers.color);
+		pass.setVertexBuffer(1, mesh.buffers.barycentric);
+		pass.setVertexBuffer(2, mesh.buffers.normal);
+		pass.setVertexBuffer(3, mesh.buffers.wireColor);
+		pass.setVertexBuffer(4, mesh.buffers.faceColor);
 		pass.draw(mesh.vertices.length);
 		pass.end();
 	}
@@ -131,7 +142,7 @@ const VERTEX_BUFFER_LAYOUT: Array<GPUVertexBufferLayout> = [
 	},
 	{
 		attributes: [{
-			shaderLocation: 1, // normal
+			shaderLocation: 1, // barycentric
 			offset: 0,
 			format: 'float32x3',
 		}],
@@ -139,7 +150,23 @@ const VERTEX_BUFFER_LAYOUT: Array<GPUVertexBufferLayout> = [
 	},
 	{
 		attributes: [{
-			shaderLocation: 2, // color
+			shaderLocation: 2, // normal
+			offset: 0,
+			format: 'float32x3',
+		}],
+		arrayStride: 12,
+	},
+	{
+		attributes: [{
+			shaderLocation: 3, // wire color
+			offset: 0,
+			format: 'float32x4',
+		}],
+		arrayStride: 16,
+	},
+	{
+		attributes: [{
+			shaderLocation: 4, // face color
 			offset: 0,
 			format: 'float32x4',
 		}],

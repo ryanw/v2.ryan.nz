@@ -48,7 +48,7 @@ export class ComposePipeline extends Pipeline {
 			colorAttachments: [
 				{
 					view,
-					clearValue: { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
+					clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
 					loadOp: 'clear',
 					storeOp: 'store',
 				},
@@ -60,7 +60,8 @@ export class ComposePipeline extends Pipeline {
 			layout: this.pipeline.getBindGroupLayout(0),
 			entries: [
 				{ binding: 0, resource: buffer.albedo.createView() },
-				{ binding: 1, resource: { buffer: this.uniformBuffer } },
+				{ binding: 1, resource: buffer.bloom.createView() },
+				{ binding: 2, resource: { buffer: this.uniformBuffer } },
 			],
 		});
 
