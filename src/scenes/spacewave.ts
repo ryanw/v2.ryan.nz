@@ -5,7 +5,7 @@ import { Scene } from '../scene';
 import { cross, normalize, subtract } from '../math/vectors';
 import { Mesh } from '../mesh';
 import { identity, multiply, rotation, scaling, translation } from '../math/transform';
-import { Entity, Vertex, DitherPipeline as DitherPipeline } from '../pipelines/dither';
+import { Entity, Vertex, SpeccyPipeline } from '../pipelines/speccy';
 import { Color } from '../lib';
 import { ComposePipeline } from '../pipelines/compose';
 import { GBuffer } from '../gbuffer';
@@ -14,7 +14,7 @@ import { PixelatePipeline } from '../pipelines/pixelate';
 export class Spacewave extends Scene {
 	private entities: Array<Entity>;
 	camera = new Camera();
-	ditherPipeline: DitherPipeline;
+	speccyPipeline: SpeccyPipeline;
 	composePipeline: ComposePipeline;
 	pixelatePipeline: PixelatePipeline;
 	heightmap: GPUTexture;
@@ -23,7 +23,7 @@ export class Spacewave extends Scene {
 
 	constructor(ctx: Context) {
 		super(ctx);
-		this.ditherPipeline = new DitherPipeline(ctx);
+		this.speccyPipeline = new SpeccyPipeline(ctx);
 		this.composePipeline = new ComposePipeline(ctx);
 		this.pixelatePipeline = new PixelatePipeline(ctx);
 		this.heightmap = ctx.device.createTexture({
@@ -64,6 +64,8 @@ export class Spacewave extends Scene {
 			const rotation: Point3 = [(rn() - 0.5), (rn() - 0.5), (rn() - 0.5)];
 			const fgColor = randomColor();
 			const bgColor = randomColor();
+			fgColor[3] = 1; // Foreground is top priority
+			bgColor[3] = 0; // Ignore background
 			const vertices = icosahedron.map(v => ({ ...v, fgColor, bgColor }));
 			this.entities.push({
 				transform: translation(...position),
@@ -71,9 +73,11 @@ export class Spacewave extends Scene {
 				mesh: new Mesh(ctx, vertices),
 			});
 		}
+
+		// Bright one
 		const fgColor = randomColor();
 		const bgColor = randomColor();
-		const vertices = icosahedron.map(v => ({ ...v, fgColor: [1, 0, 1, 0.1] as Color, bgColor: [0, 1, 1, 0.1] as Color }));
+		const vertices = icosahedron.map(v => ({ ...v, fgColor: [1, 0, 1, 1] as Color, bgColor: [0, 1, 1, 1] as Color }));
 		this.entities.push({
 			transform: translation(0, 7.6, 14),
 			rotation: [0, 0, 0],
@@ -119,7 +123,7 @@ export class Spacewave extends Scene {
 		const [w, h] = ctx.size;
 		this.gbuffer.resize(w, h);
 
-		this.ditherPipeline.drawEntities(this.gbuffer, camera || this.camera, this.entities);
+		this.speccyPipeline.drawEntities(this.gbuffer, camera || this.camera, this.entities);
 		// FIXME FIXME this option should be moved
 		if (this.composePipeline.options.pixelated) {
 			this.pixelatePipeline.pixelateColor(this.gbuffer, 8);
@@ -211,11 +215,9 @@ function subdividedPlane(divisions: number = 1, scale: number = 1.0): Array<Vert
 
 	const baseTriangle = {
 		position: [0.0, 0.0, 0.0],
-		barycentric: [1.0, 0.0, 0.0],
-		uv: [0.0, 0.0],
 		normal: [0.0, 0.0, 0.0],
-		fgColor: [0.05, 0.7, 0.1, 1.0],
-		bgColor: [0.7, 0.8, 0.05, 0.0],
+		fgColor: [0.7, 0.8, 0.05, 1.0],
+		bgColor: [0.05, 0.7, 0.1, 0.5],
 	};
 
 	const d = divisions / 2;
@@ -226,13 +228,13 @@ function subdividedPlane(divisions: number = 1, scale: number = 1.0): Array<Vert
 			const sx = (s * 2 + g) * x;
 			const sy = (s * 2 + g) * y;
 			vertices.push(
-				{ ...baseTriangle, position: [sx + -s, 0, sy + s], uv: [0, 1] } as Vertex,
-				{ ...baseTriangle, position: [sx + s, 0, sy + -s], uv: [1, 0] } as Vertex,
-				{ ...baseTriangle, position: [sx + -s, 0, sy + -s], uv: [0, 0] } as Vertex,
+				{ ...baseTriangle, position: [sx + -s, 0, sy + s] } as Vertex,
+				{ ...baseTriangle, position: [sx + s, 0, sy + -s] } as Vertex,
+				{ ...baseTriangle, position: [sx + -s, 0, sy + -s] } as Vertex,
 
-				{ ...baseTriangle, position: [sx + s, 0, sy + s], uv: [1, 1] } as Vertex,
-				{ ...baseTriangle, position: [sx + s, 0, sy + -s], uv: [1, 0] } as Vertex,
-				{ ...baseTriangle, position: [sx + -s, 0, sy + s], uv: [0, 1] } as Vertex,
+				{ ...baseTriangle, position: [sx + s, 0, sy + s] } as Vertex,
+				{ ...baseTriangle, position: [sx + s, 0, sy + -s] } as Vertex,
+				{ ...baseTriangle, position: [sx + -s, 0, sy + s] } as Vertex,
 			);
 		}
 	}
@@ -241,8 +243,6 @@ function subdividedPlane(divisions: number = 1, scale: number = 1.0): Array<Vert
 		v.position[0] *= scale;
 		v.position[2] *= scale;
 		v.position[1] = noise2d(v.position[0], v.position[2]);
-		//v.fgColor = [v.uv[0], v.uv[1], 0.0, 1.0];
-		//v.bgColor = [v.uv[0], v.uv[1], 0.0, 1.0];
 	}
 	calculateNormals(vertices);
 	return vertices;

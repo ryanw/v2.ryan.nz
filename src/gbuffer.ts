@@ -1,26 +1,38 @@
 import { Context } from './context';
 
+export const DEPTH_FORMAT: GPUTextureFormat = 'depth16unorm';
+
 export class GBuffer {
+	static DEPTH_FORMAT: GPUTextureFormat = DEPTH_FORMAT;
 	ctx: Context;
 	size: [number, number];
-	position: GPUTexture;
-	albedo: GPUTexture;
-	normal: GPUTexture;
-	depth: GPUTexture;
+
+	clashSize = [8, 8];
+
+	ink: GPUTexture;
+	paper: GPUTexture;
+	inkClash: GPUTexture;
+	paperClash: GPUTexture;
+
+	shade: GPUTexture;
+	inkDepth: GPUTexture;
+	paperDepth: GPUTexture;
 
 	constructor(ctx: Context) {
 		this.ctx = ctx;
 
 		this.size = [1, 1];
 
-		// World position Position
-		this.position = createTexture(ctx, 'rgba32float');
-		// 2x 16bit RGBA colours
-		this.albedo = createTexture(ctx, 'rgba8uint');
-		// Normal vector
-		this.normal = createTexture(ctx, 'rgba16float');
+		// RGBA Colors
+		this.ink = createTexture(ctx, 'rgba8unorm');
+		this.paper = createTexture(ctx, 'rgba8unorm');
+		this.inkClash = createTexture(ctx, 'rgba8unorm');
+		this.paperClash = createTexture(ctx, 'rgba8unorm');
+		// Amount of ink
+		this.shade = createTexture(ctx, 'r8unorm');
 		// Depth buffer
-		this.depth = createTexture(ctx, 'depth16unorm');
+		this.inkDepth = createTexture(ctx, DEPTH_FORMAT);
+		this.paperDepth = createTexture(ctx, DEPTH_FORMAT);
 	}
 
 	resize(width: number, height: number) {
@@ -28,10 +40,14 @@ export class GBuffer {
 			return;
 		}
 		this.size = [width, height];
-		this.position = createTexture(this.ctx, 'rgba32float', [width, height], "Position Texture");
-		this.albedo = createTexture(this.ctx, 'rgba8uint', [width, height], "Albedo Texture");
-		this.normal = createTexture(this.ctx, 'rgba16float', [width, height], "Normal Texture");
-		this.depth = createTexture(this.ctx, 'depth16unorm', [width, height], "Depth Texture");
+		const clashSize = [width / this.clashSize[0], height / this.clashSize[1]];
+		this.ink = createTexture(this.ctx, 'rgba8unorm', this.size, "Ink Texture");
+		this.paper = createTexture(this.ctx, 'rgba8unorm', this.size, "Paper Texture");
+		this.inkClash = createTexture(this.ctx, 'rgba8unorm', clashSize, "Ink Clash Texture");
+		this.paperClash = createTexture(this.ctx, 'rgba8unorm', clashSize, "Paper Clash Texture");
+		this.shade = createTexture(this.ctx, 'r8unorm', this.size, "Shade Texture");
+		this.inkDepth = createTexture(this.ctx, DEPTH_FORMAT, this.size, "Ink Depth Texture");
+		this.paperDepth = createTexture(this.ctx, DEPTH_FORMAT, this.size, "Paper Depth Texture");
 	}
 }
 

@@ -39,20 +39,30 @@ export function attachUi(scene: Spacewave) {
 		}
 		update();
 	});
-	const position = el.querySelector<HTMLInputElement>('input#position')!;
-	position.addEventListener('click', (e: MouseEvent) => {
+	const shade = el.querySelector<HTMLInputElement>('input#shade')!;
+	shade.addEventListener('click', (e: MouseEvent) => {
 		if ((e.target as HTMLInputElement).checked) {
-			scene.composePipeline.options.shading = Shading.Position;
+			scene.composePipeline.options.shading = Shading.Shade;
 		}
 		else {
 			scene.composePipeline.options.shading = 0;
 		}
 		update();
 	});
-	const normal = el.querySelector<HTMLInputElement>('input#normal')!;
-	normal.addEventListener('click', (e: MouseEvent) => {
+	const ink = el.querySelector<HTMLInputElement>('input#ink')!;
+	ink.addEventListener('click', (e: MouseEvent) => {
 		if ((e.target as HTMLInputElement).checked) {
-			scene.composePipeline.options.shading = Shading.Normal;
+			scene.composePipeline.options.shading = Shading.Ink;
+		}
+		else {
+			scene.composePipeline.options.shading = 0;
+		}
+		update();
+	});
+	const paper = el.querySelector<HTMLInputElement>('input#paper')!;
+	paper.addEventListener('click', (e: MouseEvent) => {
+		if ((e.target as HTMLInputElement).checked) {
+			scene.composePipeline.options.shading = Shading.Paper;
 		}
 		else {
 			scene.composePipeline.options.shading = 0;
@@ -75,11 +85,14 @@ function updateInputs(el: HTMLElement, state: Options) {
 	const dither = el.querySelector<HTMLInputElement>('input#dither')!;
 	dither.checked = state.shading === Shading.Dithered;
 
-	const position = el.querySelector<HTMLInputElement>('input#position')!;
-	position.checked = state.shading === Shading.Position;
+	const shade = el.querySelector<HTMLInputElement>('input#shade')!;
+	shade.checked = state.shading === Shading.Shade;
 
-	const normal = el.querySelector<HTMLInputElement>('input#normal')!;
-	normal.checked = state.shading === Shading.Normal;
+	const ink = el.querySelector<HTMLInputElement>('input#ink')!;
+	ink.checked = state.shading === Shading.Ink;
+
+	const paper = el.querySelector<HTMLInputElement>('input#paper')!;
+	paper.checked = state.shading === Shading.Paper
 
 	const clash = el.querySelector<HTMLInputElement>('input#clash')!;
 	clash.checked = state.pixelated;

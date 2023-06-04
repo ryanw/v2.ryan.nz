@@ -7,8 +7,9 @@ export enum Shading {
 	None = 0,
 	Flat,
 	Dithered,
-	Position,
-	Normal,
+	Shade,
+	Ink,
+	Paper,
 }
 
 export interface Options {
@@ -29,11 +30,14 @@ export class ComposePipeline extends Pipeline {
 		const { device, format } = ctx;
 
 		this.uniformBuffer = device.createBuffer({
-			size: 8,
+			size: 16,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
-		const module = device.createShaderModule({ code: SHADER_SOURCE });
+		const module = device.createShaderModule({
+			label: 'Compose Shader Module',
+			code: SHADER_SOURCE,
+		});
 		this.pipeline = device.createRenderPipeline({
 			label: 'Compose GBuffer Pipeline',
 			layout: 'auto',
@@ -48,10 +52,12 @@ export class ComposePipeline extends Pipeline {
 
 		const commandEncoder = device.createCommandEncoder();
 		device.queue.writeBuffer(this.uniformBuffer, 0, new Uint32Array([
-			// Uniforms.pixelated
-			this.options.pixelated ? 1 : 0,
 			// Uniforms.shading
 			this.options.shading,
+			// Alignment
+			0,
+			// Uniforms.pixelated
+			...(this.options.pixelated ? buffer.clashSize : [1, 1]),
 		]));
 
 		const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -65,12 +71,15 @@ export class ComposePipeline extends Pipeline {
 			],
 		};
 
+		const inkBuffer = this.options.pixelated ? buffer.inkClash : buffer.ink;
+		const paperBuffer = this.options.pixelated ? buffer.paperClash : buffer.paper;
 		const bindGroup = device.createBindGroup({
+			label: 'Compose Bind Group',
 			layout: this.pipeline.getBindGroupLayout(0),
 			entries: [
-				{ binding: 0, resource: buffer.albedo.createView() },
-				{ binding: 1, resource: buffer.position.createView() },
-				{ binding: 2, resource: buffer.normal.createView() },
+				{ binding: 0, resource: inkBuffer.createView() },
+				{ binding: 1, resource: paperBuffer.createView() },
+				{ binding: 2, resource: buffer.shade.createView() },
 				{ binding: 3, resource: { buffer: this.uniformBuffer } },
 			],
 		});

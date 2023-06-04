@@ -1,20 +1,19 @@
-@group(0) @binding(0)
-var inColor: texture_2d<u32>;
-@group(0) @binding(1)
-var inPosition: texture_2d<f32>;
-@group(0) @binding(2)
-var inNormal: texture_2d<f32>;
-
 struct VertexOut {
 	@builtin(position) position: vec4<f32>,
 	@location(0) uv: vec2<f32>,
 }
 
 struct Uniforms {
-	pixelated: u32,
 	shading: u32,
+	pixelated: vec2<u32>,
 }
 
+@group(0) @binding(0)
+var inInk: texture_2d<f32>;
+@group(0) @binding(1)
+var inPaper: texture_2d<f32>;
+@group(0) @binding(2)
+var inShade: texture_2d<f32>;
 @group(0) @binding(3)
 var<uniform> u: Uniforms;
 
@@ -44,40 +43,26 @@ fn vs_main(@builtin(vertex_index) i: u32) -> VertexOut {
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-	let coord = vec2<i32>(in.position.xy);
-
-	let colorPair = textureLoad(inColor, coord, 0);
-	let fg = (colorPair & vec4(0x0f));
-	let bg = (colorPair & vec4(0xf0)) >> vec4(4u);
-	let fgColor = vec4<f32>(fg) / 15.0;
-	let bgColor = vec4<f32>(bg) / 15.0;
+	let coord = vec2<u32>(in.position.xy);
 
 
-	let pos = textureLoad(inPosition, coord, 0);
-	if pos.x == 0.0 && pos.y == 0.0 && pos.z == 0.0 {
-		//return vec4(0.0, 0.0, 0.0, 1.0);
-	}
-
-	let normal = textureLoad(inNormal, coord, 0).xyz;
-
-
-	let lightPosition = vec3(0.0, 8.0, 40.0);
-	let lightDir = normalize(lightPosition - pos.xyz);
-	let shade = clamp(dot(normal, lightDir), 0.0, 1.0);
+	let ink = textureLoad(inInk, coord / u.pixelated, 0);
+	let paper = textureLoad(inPaper, coord / u.pixelated, 0);
+	let shade = textureLoad(inShade, coord, 0).r;
 
 	switch (u.shading) {
 		// None
 		case 0: {
 			if (coord.x + coord.y) % 2 == 0 {
-				return fgColor;
+				return ink;
 			} else {
-				return bgColor;
+				return paper;
 			}
 		}
 
 		// Flat shading
 		case 1: {
-			return mix(fgColor, bgColor, shade);
+			return mix(paper, ink, shade);
 		}
 
 		// Dithered shading
@@ -87,21 +72,26 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 			let ditherCoord = vec2(i32(in.position.x / div) % 4, i32(in.position.y / div) % 4);
 			let ditherVal = ditherMatrix[ditherCoord.x][ditherCoord.y];
 			let g = clamp(floor(shade * shadeLevels + ditherVal) / shadeLevels, 0.0, 1.0);
-			return mix(fgColor, bgColor, g);
+			return mix(paper, ink, g);
 		}
 
-		// Position
+		// Shade
 		case 3: {
-			return vec4(abs(pos.xyz / 100.0), 1.0);
+			return vec4(vec3(shade), 1.0);
 		}
 
-		// Normal
+		// Ink only
 		case 4: {
-			return vec4(vec3(normal.xyz * 0.5 + 0.5), 1.0);
+			return ink;
+		}
+
+		// Paper only
+		case 5: {
+			return paper;
 		}
 
 		default: {
-			return bgColor;
+			return paper;
 		}
 	}
 }
