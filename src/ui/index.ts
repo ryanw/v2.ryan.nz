@@ -1,10 +1,10 @@
 import { Context } from '../context';
 import template from './template.html';
 import styles from './styles.css';
-import { Spacewave } from '../scenes/spacewave';
+import { ZXScene } from '../scenes/zx';
 import { Options, Shading } from '../pipelines/compose';
 
-export function attachUi(scene: Spacewave) {
+export function attachUi(scene: ZXScene) {
 	const { ctx } = scene;
 	const el = ctx.canvas.parentElement!;
 
@@ -92,7 +92,7 @@ function updateInputs(el: HTMLElement, state: Options) {
 	ink.checked = state.shading === Shading.Ink;
 
 	const paper = el.querySelector<HTMLInputElement>('input#paper')!;
-	paper.checked = state.shading === Shading.Paper
+	paper.checked = state.shading === Shading.Paper;
 
 	const clash = el.querySelector<HTMLInputElement>('input#clash')!;
 	clash.checked = state.pixelated;

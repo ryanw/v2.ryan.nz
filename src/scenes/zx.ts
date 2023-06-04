@@ -4,20 +4,21 @@ import { Context } from '../context';
 import { Scene } from '../scene';
 import { cross, normalize, subtract } from '../math/vectors';
 import { Mesh } from '../mesh';
-import { identity, multiply, rotation, scaling, translation } from '../math/transform';
+import { multiply, rotation, scaling, translation } from '../math/transform';
 import { Entity, Vertex, SpeccyPipeline } from '../pipelines/speccy';
 import { Color } from '../lib';
 import { ComposePipeline } from '../pipelines/compose';
 import { GBuffer } from '../gbuffer';
 import { PixelatePipeline } from '../pipelines/pixelate';
+import { ICOSAHEDRON_TRIS, ICOSAHEDRON_VERTICES } from '../models/icosahedron';
 
-export class Spacewave extends Scene {
+export class ZXScene extends Scene {
 	private entities: Array<Entity>;
 	private chunks: Array<Entity>;
 	camera = new Camera();
+	composePipeline: ComposePipeline;
 	terrainPipeline: SpeccyPipeline;
 	entityPipeline: SpeccyPipeline;
-	composePipeline: ComposePipeline;
 	pixelatePipeline: PixelatePipeline;
 	heightmap: GPUTexture;
 	gbuffer: GBuffer;
@@ -25,6 +26,7 @@ export class Spacewave extends Scene {
 
 	constructor(ctx: Context) {
 		super(ctx);
+		this.composePipeline = new ComposePipeline(ctx);
 		this.terrainPipeline = new SpeccyPipeline(ctx, 'vs_chunk_main');
 		this.entityPipeline = new SpeccyPipeline(ctx, 'vs_entity_main');
 		this.composePipeline = new ComposePipeline(ctx);
@@ -165,43 +167,6 @@ export class Spacewave extends Scene {
 	}
 }
 
-const ICOSAHEDRON_VERTICES: Array<Point3> = [
-	[-1, PHI, 0],
-	[1, PHI, 0],
-	[-1, -PHI, 0],
-	[1, -PHI, 0],
-	[0, -1, PHI],
-	[0, 1, PHI],
-	[0, -1, -PHI],
-	[0, 1, -PHI],
-	[PHI, 0, -1],
-	[PHI, 0, 1],
-	[-PHI, 0, -1],
-	[-PHI, 0, 1]
-];
-
-const ICOSAHEDRON_TRIS: Array<[number, number, number]> = [
-	[0, 11, 5],
-	[0, 5, 1],
-	[0, 1, 7],
-	[0, 7, 10],
-	[0, 10, 11],
-	[1, 5, 9],
-	[5, 11, 4],
-	[11, 10, 2],
-	[10, 7, 6],
-	[7, 1, 8],
-	[3, 9, 4],
-	[3, 4, 2],
-	[3, 2, 6],
-	[3, 6, 8],
-	[3, 8, 9],
-	[4, 9, 5],
-	[2, 4, 11],
-	[6, 2, 10],
-	[8, 6, 7],
-	[9, 8, 1]
-];
 
 const QUAD_VERTS = [
 	[-1.0, -1.0, 0.0],
@@ -233,7 +198,7 @@ function calculateNormals(vertices: Array<Vertex>) {
 }
 
 function subdividedPlane(divisions: number = 1, scale: number = 1.0, offset: Vector2 = [0, 0], template?: Partial<Vertex>): Array<Vertex> {
-	let vertices: Array<Vertex> = [];
+	const vertices: Array<Vertex> = [];
 
 	const baseTriangle = {
 		position: [0.0, 0.0, 0.0],

@@ -234,7 +234,7 @@ export class SpeccyPipeline extends Pipeline {
 				renderPass.setVertexBuffer(2, mesh.buffers.fgColor);
 				renderPass.setVertexBuffer(3, mesh.buffers.bgColor);
 				renderPass.draw(mesh.vertices.length);
-				renderPass.end()
+				renderPass.end();
 			}
 			// Draw Paper
 			{
@@ -259,7 +259,7 @@ export class SpeccyPipeline extends Pipeline {
 				renderPass.setVertexBuffer(2, mesh.buffers.fgColor);
 				renderPass.setVertexBuffer(3, mesh.buffers.bgColor);
 				renderPass.draw(mesh.vertices.length);
-				renderPass.end()
+				renderPass.end();
 			}
 
 			loadOp = 'load';

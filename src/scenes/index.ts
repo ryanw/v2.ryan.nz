@@ -1,1 +1,0 @@
-export { Spacewave } from './spacewave';

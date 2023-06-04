@@ -42,7 +42,7 @@ export class Camera {
 			rotation(0, this.rotation[1], 0),
 		);
 		const invRot = inverse(rot)!;
-		let pos = transformPoint(multiply(trans, invRot), this.position);
+		const pos = transformPoint(multiply(trans, invRot), this.position);
 		this.position = transformPoint(rot, pos);
 		this.updateModel();
 	}

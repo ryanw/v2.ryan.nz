@@ -1,7 +1,7 @@
 import { Context } from './context';
 import { InputHandler } from './lib';
 import { Vector2, Vector3 } from './math';
-import { Spacewave } from './scenes/spacewave';
+import { Retrowave } from './scenes/retrowave';
 import { attachUi } from './ui';
 
 /**
@@ -50,7 +50,7 @@ async function main() {
 				// @ts-ignore FIXME TS doesn't know about unadjustedMovement
 				document.exitPointerLock({
 					unadjustedMovement: true,
-				})
+				});
 			} else {
 				el.focus();
 				el.requestPointerLock();
@@ -60,10 +60,10 @@ async function main() {
 
 
 	const inputHandler = new InputHandler(window);
-	const scene = new Spacewave(ctx);
+	const scene = new Retrowave(ctx);
 
 	if (el.parentNode) {
-		attachUi(scene);
+		//attachUi(scene);
 	}
 
 

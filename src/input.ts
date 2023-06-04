@@ -1,4 +1,4 @@
-import { Point2, Vector2 } from "./math";
+import { Point2, Vector2 } from './math';
 
 export class InputHandler {
 	target: HTMLElement | Window;

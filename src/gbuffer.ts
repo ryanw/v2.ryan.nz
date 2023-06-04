@@ -41,13 +41,13 @@ export class GBuffer {
 		}
 		this.size = [width, height];
 		const clashSize = [width / this.clashSize[0], height / this.clashSize[1]];
-		this.ink = createTexture(this.ctx, 'rgba8unorm', this.size, "Ink Texture");
-		this.paper = createTexture(this.ctx, 'rgba8unorm', this.size, "Paper Texture");
-		this.inkClash = createTexture(this.ctx, 'rgba8unorm', clashSize, "Ink Clash Texture");
-		this.paperClash = createTexture(this.ctx, 'rgba8unorm', clashSize, "Paper Clash Texture");
-		this.shade = createTexture(this.ctx, 'r8unorm', this.size, "Shade Texture");
-		this.inkDepth = createTexture(this.ctx, DEPTH_FORMAT, this.size, "Ink Depth Texture");
-		this.paperDepth = createTexture(this.ctx, DEPTH_FORMAT, this.size, "Paper Depth Texture");
+		this.ink = createTexture(this.ctx, 'rgba8unorm', this.size, 'Ink Texture');
+		this.paper = createTexture(this.ctx, 'rgba8unorm', this.size, 'Paper Texture');
+		this.inkClash = createTexture(this.ctx, 'rgba8unorm', clashSize, 'Ink Clash Texture');
+		this.paperClash = createTexture(this.ctx, 'rgba8unorm', clashSize, 'Paper Clash Texture');
+		this.shade = createTexture(this.ctx, 'r8unorm', this.size, 'Shade Texture');
+		this.inkDepth = createTexture(this.ctx, DEPTH_FORMAT, this.size, 'Ink Depth Texture');
+		this.paperDepth = createTexture(this.ctx, DEPTH_FORMAT, this.size, 'Paper Depth Texture');
 	}
 }
 
