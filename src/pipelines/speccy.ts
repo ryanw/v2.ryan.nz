@@ -23,11 +23,22 @@ export interface Vertex {
 export class SpeccyPipeline extends Pipeline {
 	private inkPipeline: GPURenderPipeline;
 	private paperPipeline: GPURenderPipeline;
-	private uniformBuffers: Array<GPUBuffer> = [];
+	private uniformBuffer: GPUBuffer;
+	private entityUniformBuffers: Array<GPUBuffer> = [];
 
-	constructor(ctx: Context) {
+	constructor(ctx: Context, vertexEntry: string = 'vs_main') {
 		super(ctx);
 		const { device } = ctx;
+
+		// mat4 + mat4 + f32
+		const uniformSize = 144;//4 * 4 * 4 * 2 + 4;
+		this.uniformBuffer = device.createBuffer({
+			label: 'Speccy Render Main Uniform Buffer',
+			size: uniformSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+			mappedAtCreation: false,
+		});
+
 		const vertexBuffers: Array<GPUVertexBufferLayout> = [
 			{
 				attributes: [{
@@ -88,7 +99,7 @@ export class SpeccyPipeline extends Pipeline {
 		this.inkPipeline = device.createRenderPipeline({
 			label: 'Speccy Render Pipeline',
 			layout: 'auto',
-			vertex: { module, entryPoint: 'vs_main', buffers: vertexBuffers },
+			vertex: { module, entryPoint: vertexEntry, buffers: vertexBuffers },
 			fragment: { module, entryPoint: 'fs_ink_main', targets: inkTargets },
 			primitive: { topology: 'triangle-list' },
 			depthStencil: {
@@ -100,7 +111,7 @@ export class SpeccyPipeline extends Pipeline {
 		this.paperPipeline = device.createRenderPipeline({
 			label: 'Speccy Render Pipeline',
 			layout: 'auto',
-			vertex: { module, entryPoint: 'vs_main', buffers: vertexBuffers },
+			vertex: { module, entryPoint: vertexEntry, buffers: vertexBuffers },
 			fragment: { module, entryPoint: 'fs_paper_main', targets: paperTargets },
 			primitive: { topology: 'triangle-list' },
 			depthStencil: {
@@ -113,10 +124,10 @@ export class SpeccyPipeline extends Pipeline {
 	}
 
 	private allocateUniforms(count: number) {
-		const uniformSize = 3 * 4 * 4 * 4; // 3x 4x4 matrix of 4 byte floats
-		while (this.uniformBuffers.length < count) {
-			this.uniformBuffers.push(this.ctx.device.createBuffer({
-				label: `Speccy Render Uniform Buffer ${this.uniformBuffers.length}`,
+		const uniformSize = 4 * 4 * 4; // 4x4 matrix of 4 byte floats
+		while (this.entityUniformBuffers.length < count) {
+			this.entityUniformBuffers.push(this.ctx.device.createBuffer({
+				label: `Speccy Render Entity Uniform Buffer ${this.entityUniformBuffers.length}`,
 				size: uniformSize,
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 				mappedAtCreation: false,
@@ -124,7 +135,7 @@ export class SpeccyPipeline extends Pipeline {
 		}
 	}
 
-	drawEntities(gbuffer: GBuffer, camera: Camera, entities: Array<Entity>) {
+	drawBatch(gbuffer: GBuffer, camera: Camera, entities: Array<Entity>, clear: boolean = false) {
 		const { device, size } = this.ctx;
 		this.allocateUniforms(entities.length);
 
@@ -132,26 +143,55 @@ export class SpeccyPipeline extends Pipeline {
 		camera.aspect = size[0] / size[1];
 		const cam = camera.model;
 		const proj = camera.projection;
+		const t = performance.now() / 1000.0;
+
+		// Write camera uniform
+		device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([...cam, ...proj, t]));
+
+		const inkUniformBindGroup = device.createBindGroup({
+			label: 'Speccy Render Ink Uniform Bind Group',
+			layout: this.inkPipeline.getBindGroupLayout(1),
+			entries: [{
+				binding: 0,
+				resource: {
+					buffer: this.uniformBuffer,
+				}
+			}]
+		});
+
+		const paperUniformBindGroup = device.createBindGroup({
+			label: 'Speccy Render Paper Uniform Bind Group',
+			layout: this.paperPipeline.getBindGroupLayout(1),
+			entries: [{
+				binding: 0,
+				resource: {
+					buffer: this.uniformBuffer,
+				}
+			}]
+		});
+
 
 		const inkDepthView = gbuffer.inkDepth.createView();
 		const paperDepthView = gbuffer.paperDepth.createView();
 		const clearValue = { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
-		const skyFg = { r: 0.5, g: 0.5, b: 0.7, a: 0.0 };
-		const skyBg = { r: 0.3, g: 0.3, b: 0.6, a: 0.5 };
+		const skyFg = { r: 0.7, g: 0.8, b: 0.9, a: 0.5 };
+		const skyBg = { r: 0.3, g: 0.6, b: 0.9, a: 0.5 };
 		const encoder = device.createCommandEncoder();
 
-		let loadOp: GPULoadOp = 'clear';
+		let loadOp: GPULoadOp = clear ? 'clear' : 'load';
 		for (let i = 0; i < entities.length; i++) {
 			const { transform, mesh } = entities[i];
 
-			device.queue.writeBuffer(this.uniformBuffers[i], 0, new Float32Array([...transform, ...cam, ...proj]));
+			// Write entity uniform
+			device.queue.writeBuffer(this.entityUniformBuffers[i], 0, new Float32Array(transform));
+
 			const inkBindGroup = device.createBindGroup({
 				label: 'Speccy Render Ink Bind Group',
 				layout: this.inkPipeline.getBindGroupLayout(0),
 				entries: [{
 					binding: 0,
 					resource: {
-						buffer: this.uniformBuffers[i],
+						buffer: this.entityUniformBuffers[i],
 					}
 				}]
 			});
@@ -162,7 +202,7 @@ export class SpeccyPipeline extends Pipeline {
 				entries: [{
 					binding: 0,
 					resource: {
-						buffer: this.uniformBuffers[i],
+						buffer: this.entityUniformBuffers[i],
 					}
 				}]
 			});
@@ -188,6 +228,7 @@ export class SpeccyPipeline extends Pipeline {
 
 				renderPass.setPipeline(this.inkPipeline);
 				renderPass.setBindGroup(0, inkBindGroup);
+				renderPass.setBindGroup(1, inkUniformBindGroup);
 				renderPass.setVertexBuffer(0, mesh.buffers.position);
 				renderPass.setVertexBuffer(1, mesh.buffers.normal);
 				renderPass.setVertexBuffer(2, mesh.buffers.fgColor);
@@ -212,6 +253,7 @@ export class SpeccyPipeline extends Pipeline {
 
 				renderPass.setPipeline(this.paperPipeline);
 				renderPass.setBindGroup(0, paperBindGroup);
+				renderPass.setBindGroup(1, paperUniformBindGroup);
 				renderPass.setVertexBuffer(0, mesh.buffers.position);
 				renderPass.setVertexBuffer(1, mesh.buffers.normal);
 				renderPass.setVertexBuffer(2, mesh.buffers.fgColor);

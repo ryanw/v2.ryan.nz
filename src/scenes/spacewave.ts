@@ -1,4 +1,4 @@
-import { PHI, Point3 } from '../math';
+import { PHI, Point3, Vector2 } from '../math';
 import { Camera } from '../camera';
 import { Context } from '../context';
 import { Scene } from '../scene';
@@ -13,8 +13,10 @@ import { PixelatePipeline } from '../pipelines/pixelate';
 
 export class Spacewave extends Scene {
 	private entities: Array<Entity>;
+	private chunks: Array<Entity>;
 	camera = new Camera();
-	speccyPipeline: SpeccyPipeline;
+	terrainPipeline: SpeccyPipeline;
+	entityPipeline: SpeccyPipeline;
 	composePipeline: ComposePipeline;
 	pixelatePipeline: PixelatePipeline;
 	heightmap: GPUTexture;
@@ -23,7 +25,8 @@ export class Spacewave extends Scene {
 
 	constructor(ctx: Context) {
 		super(ctx);
-		this.speccyPipeline = new SpeccyPipeline(ctx);
+		this.terrainPipeline = new SpeccyPipeline(ctx, 'vs_chunk_main');
+		this.entityPipeline = new SpeccyPipeline(ctx, 'vs_entity_main');
 		this.composePipeline = new ComposePipeline(ctx);
 		this.pixelatePipeline = new PixelatePipeline(ctx);
 		this.heightmap = ctx.device.createTexture({
@@ -54,6 +57,7 @@ export class Spacewave extends Scene {
 		calculateNormals(icosahedron);
 
 		this.entities = [];
+		this.chunks = [];
 
 		const rn = Math.random;
 		const randomColor = () => [rn() * 0.7, rn() * 0.7, rn() * 0.7, 0.1] as Color;
@@ -86,15 +90,30 @@ export class Spacewave extends Scene {
 
 		// Terrain
 		{
-			const position: Point3 = [0, 0, 0];
-			const fgColor = randomColor();
-			const bgColor = randomColor();
-			const vertices = subdividedPlane(256, 512.0);
-			this.entities.push({
-				transform: identity(),
-				rotation: [0, 0, 0],
-				mesh: new Mesh(ctx, vertices),
-			});
+			//const fgColor = randomColor();
+			//const bgColor = randomColor();
+			const fgColor = [0.1, 0.8, 0.2, 1.0] as Color;
+			const bgColor = [0.2, 0.4, 0.0, 0.5] as Color;
+			fgColor[3] = 1.0;
+			bgColor[3] = 0.5;
+
+			const divisions = 8.0;
+			const scale = divisions * 2;
+
+			// All chunks use the same mesh instance
+			const terrainVertices = subdividedPlane(divisions, scale, [0, 0], { fgColor, bgColor });
+			const terrainMesh = new Mesh(ctx, terrainVertices);
+
+			const r = 4;
+			for (let y = -r; y < r; y++) {
+				for (let x = -r; x < r; x++) {
+					this.chunks.push({
+						transform: translation(x * scale * 2, 0, y * scale * 2),
+						rotation: [0, 0, 0],
+						mesh: terrainMesh,
+					});
+				}
+			}
 		}
 
 		this.camera.position = [0.0, 10.0, 20.0];
@@ -123,7 +142,10 @@ export class Spacewave extends Scene {
 		const [w, h] = ctx.size;
 		this.gbuffer.resize(w, h);
 
-		this.speccyPipeline.drawEntities(this.gbuffer, camera || this.camera, this.entities);
+		ctx.encode(encoder => {
+			this.terrainPipeline.drawBatch(this.gbuffer, camera || this.camera, this.chunks, true);
+			this.entityPipeline.drawBatch(this.gbuffer, camera || this.camera, this.entities);
+		});
 		// FIXME FIXME this option should be moved
 		if (this.composePipeline.options.pixelated) {
 			this.pixelatePipeline.pixelateColor(this.gbuffer, 8);
@@ -210,14 +232,15 @@ function calculateNormals(vertices: Array<Vertex>) {
 	}
 }
 
-function subdividedPlane(divisions: number = 1, scale: number = 1.0): Array<Vertex> {
+function subdividedPlane(divisions: number = 1, scale: number = 1.0, offset: Vector2 = [0, 0], template?: Partial<Vertex>): Array<Vertex> {
 	let vertices: Array<Vertex> = [];
 
 	const baseTriangle = {
 		position: [0.0, 0.0, 0.0],
 		normal: [0.0, 0.0, 0.0],
-		fgColor: [0.7, 0.8, 0.05, 1.0],
-		bgColor: [0.05, 0.7, 0.1, 0.5],
+		fgColor: [0.8, 0.5, 0.1, 1.0],
+		bgColor: [0.2, 0.4, 0.1, 0.5],
+		...template
 	};
 
 	const d = divisions / 2;
@@ -225,8 +248,8 @@ function subdividedPlane(divisions: number = 1, scale: number = 1.0): Array<Vert
 	for (let y = -d; y < d; y++) {
 		for (let x = -d; x < d; x++) {
 			const g = 0.0;
-			const sx = (s * 2 + g) * x;
-			const sy = (s * 2 + g) * y;
+			const sx = (s * 2 + g) * x + (offset[0] * 2);
+			const sy = (s * 2 + g) * y + (offset[1] * 2);
 			vertices.push(
 				{ ...baseTriangle, position: [sx + -s, 0, sy + s] } as Vertex,
 				{ ...baseTriangle, position: [sx + s, 0, sy + -s] } as Vertex,
@@ -242,7 +265,7 @@ function subdividedPlane(divisions: number = 1, scale: number = 1.0): Array<Vert
 	for (const v of vertices) {
 		v.position[0] *= scale;
 		v.position[2] *= scale;
-		v.position[1] = noise2d(v.position[0], v.position[2]);
+		//v.position[1] = noise2d(v.position[0], v.position[2]);
 	}
 	calculateNormals(vertices);
 	return vertices;

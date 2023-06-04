@@ -71,4 +71,12 @@ export class Context {
 		this.canvas.setAttribute('width', w.toString());
 		this.canvas.setAttribute('height', h.toString());
 	}
+
+	encode(callback: (encoder: GPUCommandEncoder) => void) {
+		const { device } = this;
+		const encoder = device.createCommandEncoder();
+		callback(encoder);
+		device.queue.submit([encoder.finish()]);
+	}
+
 }
