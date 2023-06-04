@@ -74,13 +74,14 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 	color = vec4(0.0);
 
 
-	let g = edgeDistance(in.barycentric, 2.0, 0.8);
+	let g = edgeDistance(in.barycentric, 2.0, 0.5);
 
 	var wire = in.wireColor;
-	wire = mix(wire, vec4(0.8, 0.0, 0.7, 1.0), sin((u.t * 2.0) + in.worldPosition.z));
+	//wire = mix(wire, vec4(1.0), sin((u.t * 2.0) + in.worldPosition.z));
 
 	out.color = mix(wire, in.faceColor, g);
-	out.bloom = mix(wire, vec4(0.0), g);
+	//out.color = mix(wire, vec4(in.normal, 1.0), g);
+	out.bloom = mix(vec4(0.0), wire, (1.0 - g) / 5.0);
 
 	out.depth = in.position.z;
 	return out;

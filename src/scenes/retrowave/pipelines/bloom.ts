@@ -65,7 +65,7 @@ export class BloomPipeline extends Pipeline {
 			// Uniforms.radius
 			radius,
 			// Uniforms.amount
-			(Math.sin(t * 1.23) * 0.5 + 0.5) * 0.7,
+			(Math.abs(Math.sin(t * 1.23) * 0.5) + 0.8) * 0.8,
 		]));
 
 		const passDescriptor: GPUComputePassDescriptor = {};

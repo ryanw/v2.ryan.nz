@@ -1,5 +1,5 @@
 import { PHI, Point3 } from "../math";
-import { normalize } from "../math/vectors";
+import { cross, normalize, subtract } from "../math/vectors";
 
 export const ICOSAHEDRON_VERTICES: Array<Point3> = [
 	[-1, PHI, 0],
@@ -47,4 +47,3 @@ export function buildIcosahedron<T>(callback: (position: Point3, index: number) 
 		)
 	).flat();
 }
-

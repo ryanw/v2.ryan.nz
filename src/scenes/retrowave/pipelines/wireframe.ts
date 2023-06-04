@@ -21,8 +21,8 @@ export interface WireVertex {
 
 export class WireframePipeline extends Pipeline {
 	private pipeline: GPURenderPipeline;
-	private entityBuffer: GPUBuffer;
-	private entityBindGroup: GPUBindGroup;
+	private entityBuffers: Record<number, GPUBuffer>;
+	private entityBindGroups: Record<number, GPUBindGroup>;
 	private uniformBuffer: GPUBuffer;
 	private uniformBindGroup: GPUBindGroup;
 
@@ -36,12 +36,7 @@ export class WireframePipeline extends Pipeline {
 			code: SHADER_SOURCE,
 		});
 
-		this.entityBuffer = device.createBuffer({
-			label: 'Wireframe Render Entity Buffer',
-			size: 256,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-			mappedAtCreation: false,
-		});
+		this.entityBuffers = {};
 		this.uniformBuffer = device.createBuffer({
 			label: 'Wireframe Render Uniform Buffer',
 			size: 256,
@@ -52,12 +47,14 @@ export class WireframePipeline extends Pipeline {
 			label: 'Wireframe Render Pipeline',
 			layout: 'auto',
 			vertex: { module, entryPoint: 'vs_main', buffers: VERTEX_BUFFER_LAYOUT },
-			fragment: { module, entryPoint: 'fs_main', targets: [
-				// Albedo
-				{ format: 'rgba8unorm' },
-				// Bloom
-				{ format: 'rgba8unorm' },
-			] },
+			fragment: {
+				module, entryPoint: 'fs_main', targets: [
+					// Albedo
+					{ format: 'rgba8unorm' },
+					// Bloom
+					{ format: 'rgba8unorm' },
+				]
+			},
 			primitive: { topology: 'triangle-list' },
 			depthStencil: {
 				format: 'depth16unorm',
@@ -65,16 +62,7 @@ export class WireframePipeline extends Pipeline {
 				depthCompare: 'less',
 			},
 		});
-		this.entityBindGroup = device.createBindGroup({
-			label: 'Wireframe Render Entity Bind Group',
-			layout: this.pipeline.getBindGroupLayout(0),
-			entries: [{
-				binding: 0,
-				resource: {
-					buffer: this.entityBuffer,
-				}
-			}]
-		});
+		this.entityBindGroups = {};
 		this.uniformBindGroup = device.createBindGroup({
 			label: 'Wireframe Render Uniform Bind Group',
 			layout: this.pipeline.getBindGroupLayout(1),
@@ -87,22 +75,11 @@ export class WireframePipeline extends Pipeline {
 		});
 	}
 
-	draw(encoder: GPUCommandEncoder, gbuffer: GBuffer, entity: Entity, camera: Camera) {
-		const { device } = this.ctx;
-		const { mesh, transform } = entity;
+	clear(encoder: GPUCommandEncoder, gbuffer: GBuffer) {
 		const clearValue = { r: 0.0, g: 0.0, b: 0.0, a: 1.0 };
-
 		const albedoView = gbuffer.albedo.createView();
 		const bloomView = gbuffer.bloom.createView();
 		const depthView = gbuffer.depth.createView();
-
-		// Update camera uniform
-		const t = performance.now() / 1000.0;
-		device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([...camera.model, ...camera.projection, t]));
-
-		// Update entity uniform
-		device.queue.writeBuffer(this.entityBuffer, 0, new Float32Array(transform));
-
 		const passDescriptor: GPURenderPassDescriptor = {
 			colorAttachments: [
 				{ view: albedoView, clearValue, loadOp: 'clear', storeOp: 'store' },
@@ -117,8 +94,58 @@ export class WireframePipeline extends Pipeline {
 		};
 
 		const pass = encoder.beginRenderPass(passDescriptor);
+		pass.end();
+	}
+
+	draw(encoder: GPUCommandEncoder, id: number, gbuffer: GBuffer, entity: Entity, camera: Camera) {
+		const { device } = this.ctx;
+		const { mesh, transform } = entity;
+
+		const albedoView = gbuffer.albedo.createView();
+		const bloomView = gbuffer.bloom.createView();
+		const depthView = gbuffer.depth.createView();
+
+		// Update camera uniform
+		const t = performance.now() / 1000.0;
+		device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([...camera.model, ...camera.projection, t]));
+
+		// Update entity uniform
+		if (!this.entityBuffers[id]) {
+			this.entityBuffers[id] = device.createBuffer({
+				label: 'Wireframe Render Entity Buffer',
+				size: 256,
+				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+				mappedAtCreation: false,
+			});
+			this.entityBindGroups[id] = device.createBindGroup({
+				label: 'Wireframe Render Entity Bind Group',
+				layout: this.pipeline.getBindGroupLayout(0),
+				entries: [{
+					binding: 0,
+					resource: {
+						buffer: this.entityBuffers[id],
+					}
+				}]
+			});
+		}
+		device.queue.writeBuffer(this.entityBuffers[id], 0, new Float32Array(transform));
+
+		const passDescriptor: GPURenderPassDescriptor = {
+			colorAttachments: [
+				{ view: albedoView, loadOp: 'load', storeOp: 'store' },
+				{ view: bloomView, loadOp: 'load', storeOp: 'store' },
+			],
+			depthStencilAttachment: {
+				view: depthView,
+				depthClearValue: 1.0,
+				depthLoadOp: 'load',
+				depthStoreOp: 'store',
+			}
+		};
+
+		const pass = encoder.beginRenderPass(passDescriptor);
 		pass.setPipeline(this.pipeline);
-		pass.setBindGroup(0, this.entityBindGroup);
+		pass.setBindGroup(0, this.entityBindGroups[id]);
 		pass.setBindGroup(1, this.uniformBindGroup);
 		pass.setVertexBuffer(0, mesh.buffers.position);
 		pass.setVertexBuffer(1, mesh.buffers.barycentric);

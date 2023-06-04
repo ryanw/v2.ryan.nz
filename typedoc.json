@@ -1,5 +1,6 @@
 {
 	"entryPoints": ["./src/lib.ts"],
-	"exclude": ["node_modules", "src/__mocks__", "src/**/*.test.ts"],
+	"exclude": ["src/__mocks__", "src/**/*.test.ts"],
+	"excludeExternals": true,
 	"out": "static/docs"
 }

@@ -39,7 +39,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	var bloom = textureLoad(inBloom, coord, 0);
 
 	if false {
-		albedo += vec4(vec3(u.fog), 1.0) * 0.0;
+		albedo += vec4(vec3(u.fog), 1.0);
 	}
 
 	return albedo + bloom;
