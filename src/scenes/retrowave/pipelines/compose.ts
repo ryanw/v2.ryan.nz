@@ -2,6 +2,7 @@ import { GBuffer } from '../gbuffer';
 import { Context } from '../../../context';
 import { Pipeline } from '../../../pipeline';
 import SHADER_SOURCE from './compose.wgsl';
+import { createTexture } from '../../../lib';
 
 export interface Options {
 	fog: number;
@@ -10,18 +11,18 @@ export interface Options {
 export class ComposePipeline extends Pipeline {
 	pipeline: GPURenderPipeline;
 	uniformBuffer: GPUBuffer;
-	options: Options = {
-		fog: 0.0,
-	};
+	dummy: GPUTexture;
 
-	constructor(ctx: Context) {
+	constructor(ctx: Context, format?: GPUTextureFormat) {
 		super(ctx);
-		const { device, format } = ctx;
+		const { device } = ctx;
 
 		this.uniformBuffer = device.createBuffer({
 			size: 16,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
+
+		this.dummy = createTexture(ctx, 'rgba8unorm');
 
 		const module = device.createShaderModule({
 			label: 'RetroCompose Shader Module',
@@ -31,17 +32,17 @@ export class ComposePipeline extends Pipeline {
 			label: 'RetroCompose GBuffer Pipeline',
 			layout: 'auto',
 			vertex: { module, entryPoint: 'vs_main' },
-			fragment: { module, entryPoint: 'fs_main', targets: [{ format }] },
+			fragment: { module, entryPoint: 'fs_main', targets: [{ format: format || ctx.format }] },
 			primitive: { topology: 'triangle-strip' },
 		});
 	}
 
-	compose(encoder: GPUCommandEncoder, view: GPUTextureView, buffer: GBuffer) {
+	compose(encoder: GPUCommandEncoder, view: GPUTextureView, buffer: GBuffer, reflection?: GPUTexture) {
 		const { device } = this.ctx;
 
 		device.queue.writeBuffer(this.uniformBuffer, 0, new Uint32Array([
 			// Uniforms.fog
-			this.options.fog,
+			reflection ? 1 : 0
 		]));
 
 		const passDescriptor: GPURenderPassDescriptor = {
@@ -61,7 +62,9 @@ export class ComposePipeline extends Pipeline {
 			entries: [
 				{ binding: 0, resource: buffer.albedo.createView() },
 				{ binding: 1, resource: buffer.bloom.createView() },
-				{ binding: 2, resource: { buffer: this.uniformBuffer } },
+				{ binding: 2, resource: buffer.mirror.createView() },
+				{ binding: 3, resource: (reflection || this.dummy).createView() },
+				{ binding: 4, resource: { buffer: this.uniformBuffer } },
 			],
 		});
 

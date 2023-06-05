@@ -61,11 +61,12 @@ export class BloomPipeline extends Pipeline {
 		this.resizeTexture(width, height);
 
 		const t = performance.now() / 1000.0;
+		const amount = 1.1;//(Math.abs(Math.sin(t * 1.23) * 0.5) + 0.8) * 0.8;
 		device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([
 			// Uniforms.radius
 			radius,
 			// Uniforms.amount
-			(Math.abs(Math.sin(t * 1.23) * 0.5) + 0.8) * 0.8,
+			amount,
 		]));
 
 		const passDescriptor: GPUComputePassDescriptor = {};

@@ -4,7 +4,7 @@ struct VertexOut {
 }
 
 struct Uniforms {
-	fog: f32,
+	reflection: u32,
 }
 
 @group(0) @binding(0)
@@ -12,6 +12,10 @@ var inAlbedo: texture_2d<f32>;
 @group(0) @binding(1)
 var inBloom: texture_2d<f32>;
 @group(0) @binding(2)
+var inMirror: texture_2d<f32>;
+@group(0) @binding(3)
+var inReflection: texture_2d<f32>;
+@group(0) @binding(4)
 var<uniform> u: Uniforms;
 
 @vertex
@@ -37,9 +41,11 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 
 	var albedo = textureLoad(inAlbedo, coord, 0);
 	var bloom = textureLoad(inBloom, coord, 0);
+	var mirror = textureLoad(inMirror, coord, 0);
+	var reflection = textureLoad(inReflection, coord, 0);
 
-	if false {
-		albedo += vec4(vec3(u.fog), 1.0);
+	if u.reflection > 0 && mirror.a > 0.0 {
+		albedo = mix(vec4(0.1, 0.05, 0.3, 1.0), reflection, 0.2);
 	}
 
 	return albedo + bloom;

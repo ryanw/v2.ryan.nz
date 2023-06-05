@@ -7,6 +7,7 @@ import { Pipeline } from '../../../pipeline';
 import SHADER_SOURCE from './wireframe.wgsl';
 
 export interface Entity {
+	hasReflection: boolean;
 	transform: Matrix4;
 	mesh: Mesh<WireVertex>;
 }
@@ -53,6 +54,8 @@ export class WireframePipeline extends Pipeline {
 					{ format: 'rgba8unorm' },
 					// Bloom
 					{ format: 'rgba8unorm' },
+					// Mirror
+					{ format: 'rgba8unorm' },
 				]
 			},
 			primitive: { topology: 'triangle-list' },
@@ -76,15 +79,33 @@ export class WireframePipeline extends Pipeline {
 	}
 
 	clear(encoder: GPUCommandEncoder, gbuffer: GBuffer) {
-		const clearValue = { r: 0.0, g: 0.0, b: 0.0, a: 1.0 };
+		const clearValue = { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
 		const albedoView = gbuffer.albedo.createView();
 		const bloomView = gbuffer.bloom.createView();
+		const mirrorView = gbuffer.mirror.createView();
 		const depthView = gbuffer.depth.createView();
 		const passDescriptor: GPURenderPassDescriptor = {
 			colorAttachments: [
 				{ view: albedoView, clearValue, loadOp: 'clear', storeOp: 'store' },
 				{ view: bloomView, clearValue, loadOp: 'clear', storeOp: 'store' },
+				{ view: mirrorView, clearValue, loadOp: 'clear', storeOp: 'store' },
 			],
+			depthStencilAttachment: {
+				view: depthView,
+				depthClearValue: 1.0,
+				depthLoadOp: 'clear',
+				depthStoreOp: 'store',
+			}
+		};
+
+		const pass = encoder.beginRenderPass(passDescriptor);
+		pass.end();
+	}
+
+	clearDepth(encoder: GPUCommandEncoder, gbuffer: GBuffer) {
+		const depthView = gbuffer.depth.createView();
+		const passDescriptor: GPURenderPassDescriptor = {
+			colorAttachments: [],
 			depthStencilAttachment: {
 				view: depthView,
 				depthClearValue: 1.0,
@@ -103,6 +124,7 @@ export class WireframePipeline extends Pipeline {
 
 		const albedoView = gbuffer.albedo.createView();
 		const bloomView = gbuffer.bloom.createView();
+		const mirrorView = gbuffer.mirror.createView();
 		const depthView = gbuffer.depth.createView();
 
 		// Update camera uniform
@@ -134,6 +156,7 @@ export class WireframePipeline extends Pipeline {
 			colorAttachments: [
 				{ view: albedoView, loadOp: 'load', storeOp: 'store' },
 				{ view: bloomView, loadOp: 'load', storeOp: 'store' },
+				{ view: mirrorView, loadOp: 'load', storeOp: 'store' },
 			],
 			depthStencilAttachment: {
 				view: depthView,

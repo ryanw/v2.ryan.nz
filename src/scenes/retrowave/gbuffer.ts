@@ -1,4 +1,5 @@
 import { Context } from '../../context';
+import { createTexture } from '../../lib';
 
 export const DEPTH_FORMAT: GPUTextureFormat = 'depth16unorm';
 
@@ -9,6 +10,7 @@ export class GBuffer {
 
 	albedo: GPUTexture;
 	bloom: GPUTexture;
+	mirror: GPUTexture;
 	depth: GPUTexture;
 
 	constructor(ctx: Context) {
@@ -19,6 +21,7 @@ export class GBuffer {
 		// RGBA Colors
 		this.albedo = createTexture(ctx, 'rgba8unorm');
 		this.bloom = createTexture(ctx, 'rgba8unorm');
+		this.mirror = createTexture(ctx, 'rgba8unorm');
 		this.depth = createTexture(ctx, DEPTH_FORMAT);
 	}
 
@@ -29,24 +32,8 @@ export class GBuffer {
 		this.size = [width, height];
 		this.albedo = createTexture(this.ctx, 'rgba8unorm', this.size, 'Retrowave GBuffer Albedo Texture');
 		this.bloom = createTexture(this.ctx, 'rgba8unorm', this.size, 'Retrowave GBuffer Bloom Texture');
+		this.mirror = createTexture(this.ctx, 'rgba8unorm', this.size, 'Retrowave GBuffer Mirror Texture');
 		this.depth = createTexture(this.ctx, DEPTH_FORMAT, this.size, 'Retrowave GBuffer Depth Texture');
 	}
-}
-
-function createTexture({ device }: Context, format: GPUTextureFormat, size: GPUExtent3DStrict = [1, 1], label?: string): GPUTexture {
-	let usage = 
-		GPUTextureUsage.RENDER_ATTACHMENT |
-		GPUTextureUsage.TEXTURE_BINDING |
-		GPUTextureUsage.COPY_DST;
-
-	if (format === 'rgba8unorm' || format === 'rgba8uint') {
-		usage |= GPUTextureUsage.STORAGE_BINDING;
-	}
-	return device.createTexture({
-		label,
-		format,
-		size,
-		usage
-	});
 }
 

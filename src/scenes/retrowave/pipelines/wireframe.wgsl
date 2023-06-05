@@ -33,6 +33,7 @@ struct FragmentOut {
 	@builtin(frag_depth) depth: f32,
 	@location(0) color: vec4<f32>,
 	@location(1) bloom: vec4<f32>,
+	@location(2) mirror: vec4<f32>,
 }
 
 @group(0) @binding(0)
@@ -74,16 +75,31 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 	color = vec4(0.0);
 
 
-	let g = edgeDistance(in.barycentric, 2.0, 0.5);
+	let g = edgeDistance(in.barycentric, 1.5, 0.5);
 
 	var wire = in.wireColor;
 	//wire = mix(wire, vec4(1.0), sin((u.t * 2.0) + in.worldPosition.z));
 
-	out.color = mix(wire, in.faceColor, g);
-	//out.color = mix(wire, vec4(in.normal, 1.0), g);
-	out.bloom = mix(vec4(0.0), wire, (1.0 - g) / 5.0);
+	let face = mix(vec4(0.0, 0.0, 0.0, 1.0), in.faceColor, shade);
+	let f = 0.95;
+	let n = 0.04;
+	let fog = 1.0 - smoothstep(f, f + n, in.position.z * 2.0);
+	out.color = mix(wire, face, g);// * fog;
+	out.bloom = mix(vec4(0.0), wire, (1.0 - g) / 5.0) * fog;
+
+	if in.faceColor.a <= 0.1 && in.faceColor.r >= 0.9 {
+		out.mirror = vec4(1.0);
+	}
+	else {
+		out.mirror = vec4(0.0);
+	}
 
 	out.depth = in.position.z;
+
+
+	if false {
+		out.color = mix(wire, vec4(in.normal, 1.0), g);
+	}
 	return out;
 }
 

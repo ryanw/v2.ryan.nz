@@ -147,6 +147,45 @@ export function transformPoint<P extends Point3 | Point4>(trans: Matrix4, p: P):
 	}
 }
 
+export function reflectionX(): Matrix4 {
+	return [
+		-1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1,
+	];
+}
+
+export function reflectionY(): Matrix4 {
+	return [
+		1, 0, 0, 0,
+		0, -1, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1,
+	];
+}
+
+export function reflectionZ(): Matrix4 {
+	return [
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, -1, 0,
+		0, 0, 0, 1,
+	];
+}
+
+export function reflectX(trans: Matrix4): Matrix4 {
+	return multiply(reflectionX(), trans);
+}
+
+export function reflectY(trans: Matrix4): Matrix4 {
+	return multiply(reflectionY(), trans);
+}
+
+export function reflectZ(trans: Matrix4): Matrix4 {
+	return multiply(reflectionZ(), trans);
+}
+
 export function determinant(m: Matrix4): number {
 	const [
 		m00, m01, m02, m03,
