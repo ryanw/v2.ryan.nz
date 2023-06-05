@@ -5,6 +5,7 @@ html, body, main {
 	background: #000;
 	height: 100%;
 	overflow: hidden;
+	font-family: sans-serif;
 }
 
 main {
@@ -33,8 +34,26 @@ main > canvas {
 	z-index: 1;
 }
 
-main > h1, footer {
+main > h1 {
 	display: none;
+}
+
+footer {
+	display: none;
+}
+.instructions {
+	position: absolute;
+	z-index: 10;
+	width: 164px;
+	bottom: 32px;
+	text-align: center;
+	width: 400px;
+	left: 50%;
+	margin: 32px;
+	margin-left: -200px;
+	line-height: 1.5em;
+	background: rgba(50, 50, 50, 0.85);
+	border-radius: 8px;
 }
 
 footer {

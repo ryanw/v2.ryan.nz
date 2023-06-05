@@ -44,9 +44,40 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	var mirror = textureLoad(inMirror, coord, 0);
 	var reflection = textureLoad(inReflection, coord, 0);
 
-	if u.reflection > 0 && mirror.a > 0.0 {
-		albedo = mix(vec4(0.1, 0.05, 0.3, 1.0), reflection, 0.2);
+	if u.reflection > 0 && mirror.b > 0.0 {
+
+		if true {
+			if mirror.r > 0.0 {
+				reflection = blur(inReflection, vec2<i32>(coord), 3, 4);
+				albedo = mix(vec4(0.15, 0.15, 0.15, 1.0), reflection, 0.15);
+			}
+			else {
+				reflection = blur(inReflection, vec2<i32>(coord), 1, 1);
+				albedo = mix(vec4(0.15, 0.15, 0.15, 1.0), reflection, 0.4);
+			}
+		}
+		else {
+			if mirror.r > 0.0 {
+				albedo = mix(reflection, vec4(0.1, 0.1, 0.9, 1.0), 1.0/10.0);
+			} else {
+				albedo = mix(reflection, vec4(0.9, 0.1, 0.1, 1.0), 1.0/10.0);
+			}
+		}
 	}
 
 	return albedo + bloom;
+}
+
+fn blur(tex: texture_2d<f32>, coord: vec2<i32>, kernel: i32, spread: i32) -> vec4<f32> {
+	var color = vec4(0.0);
+	for (var y = -kernel; y <= kernel; y += 1) {
+		for (var x = -kernel; x <= kernel; x += 1) {
+			let offset = vec2(x * spread, y * spread);
+			color += textureLoad(tex, coord + offset, 0);
+		}
+	}
+	let k = 2.0 * f32(kernel) + 1.0;
+	color = color / (k * k);
+
+	return color;
 }

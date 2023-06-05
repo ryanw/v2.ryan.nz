@@ -80,18 +80,25 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 	var wire = in.wireColor;
 	//wire = mix(wire, vec4(1.0), sin((u.t * 2.0) + in.worldPosition.z));
 
-	let face = mix(vec4(0.0, 0.0, 0.0, 1.0), in.faceColor, shade);
+	//let face = mix(vec4(0.0, 0.0, 0.0, 1.0), in.faceColor, shade);
+	let face = in.faceColor;
 	let f = 0.95;
 	let n = 0.04;
 	let fog = 1.0 - smoothstep(f, f + n, in.position.z * 2.0);
 	out.color = mix(wire, face, g);// * fog;
-	out.bloom = mix(vec4(0.0), wire, (1.0 - g) / 5.0) * fog;
+	out.bloom = mix(vec4(0.0), wire, (1.0 - g) / 5.0);// * fog;
+	out.mirror = vec4(0.0);
 
-	if in.faceColor.a <= 0.1 && in.faceColor.r >= 0.9 {
-		out.mirror = vec4(1.0);
-	}
-	else {
-		out.mirror = vec4(0.0);
+	let isMirror = in.faceColor.a <= 0.1 && in.faceColor.r >= 0.9;
+	if isMirror {
+		out.color = in.faceColor;
+		var gx = step(0.5, fract(in.worldPosition.x / 10.0));
+		var gy = step(0.5, fract(in.worldPosition.z / 10.0));
+		var q = abs(gy - gx);
+		out.mirror.r = 1.0 - q;
+		out.mirror.g = q;
+		out.mirror.b = 1.0;
+		out.bloom = vec4(0.0);
 	}
 
 	out.depth = in.position.z;

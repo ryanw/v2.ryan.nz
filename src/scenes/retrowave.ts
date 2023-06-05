@@ -5,14 +5,20 @@ import { Entity, WireVertex } from './retrowave/pipelines/wireframe';
 import { Scene } from '../scene';
 import { buildIcosahedron } from '../models/icosahedron';
 import { Mesh } from '../mesh';
-import { identity, multiply, reflectY, rotation, translation } from '../math/transform';
+import { multiply, reflectY, rotation, translation } from '../math/transform';
 import { BloomPipeline, WireframePipeline, ComposePipeline } from './retrowave/pipelines';
 import { calculateNormals } from '../models';
-import { Matrix4, Point3, Vector2 } from '../math';
+import { Point3, Vector2, Vector3 } from '../math';
 import { Color, createTexture } from '../lib';
+import { normalize, scale } from '../math/vectors';
+
+export interface SceneEntity extends Entity {
+	seed: number;
+	rotation: Vector3;
+}
 
 export class Retrowave extends Scene {
-	private entities: Array<Entity>;
+	private entities: Array<SceneEntity>;
 	camera = new Camera();
 	wireframePipeline: WireframePipeline;
 	bloomPipeline: BloomPipeline;
@@ -34,6 +40,7 @@ export class Retrowave extends Scene {
 		this.mainOutput = createTexture(ctx, 'rgba8unorm');
 		this.reflectOutput = createTexture(ctx, 'rgba8unorm');
 		this.entities = [];
+		this.camera.position[1] += 5.0;
 
 		const barycentric = [
 			[1, 0, 0],
@@ -54,7 +61,7 @@ export class Retrowave extends Scene {
 		const randomColor = () => [rn() * 0.7, rn() * 0.7, rn() * 0.7, 0.1] as Color;
 		for (let i = 0; i < 100; i++) {
 			const dist = 200.0;
-			const position: Point3 = [(rn() - 0.5) * dist, (rn() + 0.1) * 10.0, (rn() - 0.5) * dist];
+			const position: Point3 = [(rn() - 0.5) * dist, (rn() + 0.77) * 10.0, (rn() - 0.5) * dist];
 			const wireColor = randomColor();
 			const faceColor = randomColor();
 
@@ -66,13 +73,15 @@ export class Retrowave extends Scene {
 
 			this.entities.push({
 				hasReflection: true,
+				rotation: normalize([rn(), rn(), rn()]),
 				transform: translation(...position),
 				mesh: new Mesh(ctx, vertices),
+				seed: Math.random(),
 			});
 		}
 
-		const divisions = 16.0;
-		const scale = divisions * 2;
+		const divisions = 1;
+		const scale = 256.0;
 		const terrainVertices = subdividedPlane(divisions, scale, [0, 0]);
 		const terrainMesh = new Mesh(ctx, terrainVertices);
 		const r = 2;
@@ -80,9 +89,41 @@ export class Retrowave extends Scene {
 			for (let x = -r; x < r; x++) {
 				this.entities.push({
 					hasReflection: false,
+					rotation: [0, 0, 0],
 					transform: translation(x * scale * 2, 0, y * scale * 2),
 					mesh: terrainMesh,
+					seed: 0,
 				});
+			}
+		}
+	}
+
+	updateEntities(dt: number) {
+		for (const entity of this.entities) {
+			const rot = scale(entity.rotation, dt);
+			entity.transform = multiply(entity.transform, rotation(...rot));
+			if (entity.seed > 0) {
+				entity.transform =
+					multiply(
+						translation(
+							Math.cos(
+								performance.now()
+								/ (500 - entity.seed * 44)
+								+ entity.seed * 10,
+							) / 10,
+							Math.sin(
+								performance.now()
+								/ (800 - entity.seed * 100)
+								+ entity.seed * 10,
+							) / 20,
+							Math.sin(
+								performance.now()
+								/ (400 - entity.seed * 123)
+								+ entity.seed * 10,
+							) / 30,
+						),
+						entity.transform,
+					);
 			}
 		}
 	}
@@ -127,16 +168,15 @@ export class Retrowave extends Scene {
 					this.wireframePipeline.draw(encoder, i + this.entities.length, this.reflectBuffer, reflectedEntity, camera);
 				}
 			}
-			this.bloomPipeline.run(encoder, this.buffer, 3);
-			this.bloomPipeline.run(encoder, this.buffer, 4);
 
-			this.bloomPipeline.run(encoder, this.reflectBuffer, 3);
-			this.bloomPipeline.run(encoder, this.reflectBuffer, 4);
+			this.bloomPipeline.run(encoder, this.buffer, 1, 1.7);
+			this.bloomPipeline.run(encoder, this.reflectBuffer, 1, 1.7);
 
-
+			// Compose reflection onto a texture
 			const reflectView = this.reflectOutput.createView();
 			this.rgbComposePipeline.compose(encoder, reflectView, this.reflectBuffer);
 
+			// Draw main view using reflection texture for the mirror
 			const view = this.ctx.currentTexture.createView();
 			this.bgrComposePipeline.compose(encoder, view, this.buffer, this.reflectOutput);
 
@@ -146,6 +186,7 @@ export class Retrowave extends Scene {
 	async draw(camera?: Camera) {
 		return new Promise(resolve =>
 			requestAnimationFrame(() => {
+				this.updateEntities(1 / 60);
 				this.drawFrame(camera);
 				resolve(void 0);
 			}));
