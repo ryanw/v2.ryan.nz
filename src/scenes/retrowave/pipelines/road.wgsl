@@ -73,50 +73,27 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 	let lightDir = normalize(lightPosition - in.worldPosition);
 	let shade = clamp(dot(in.normal, lightDir), 0.0, 1.0);
 
+	let roadColor = vec4(0.0, 0.0, 0.0, 1.0);
+	let lineColor = vec4(0.9, 0.8, 0.0, 1.0);
 
-	color = vec4(0.0);
+	let seg = 10.0;
 
+	let linePos = (sin(in.worldPosition.z / 4.0));
+	var center = smoothstep(0.0, 1.0 / 100.0, linePos);
+	center *= 1.0 - smoothstep(0.4, 0.5, abs(in.worldPosition.x));
+	color = mix(roadColor, lineColor, center);
 
-	let g = edgeDistance(in.barycentric, 1.5, 0.5);
+	var gx = step(0.5, fract(in.worldPosition.x / 10.0));
+	var gy = step(0.5, fract(in.worldPosition.z / 10.0));
+	var q = abs(gy - gx);
+	// Flag as mirror
+	out.mirror.a = 1.0 - center;
 
-	var wire = in.wireColor;
-	//wire = mix(wire, vec4(1.0), sin((u.t * 2.0) + in.worldPosition.z));
+	// Magic numbers change type of reflection
+	out.mirror.r = q;
+	out.bloom = vec4(lineColor.rgb * min(1.0, center), 1.0);
 
-	//let face = mix(vec4(0.0, 0.0, 0.0, 1.0), in.faceColor, shade);
-	let face = in.faceColor;
-	let n = 0.01;
-	out.color = mix(wire, face, g);
-	out.bloom = mix(vec4(0.0), wire, (1.0 - g) / 5.0);
-	out.mirror = vec4(0.0);
-
-	let fog = 1.0 - smoothstep(0.6, 0.9, in.depth);
-	/*
-	out.color *= fog;
-	out.bloom *= fog;
-	out.mirror *= fog;
-	*/
-
-	// FIXME custom materials
-	let isMirror = in.faceColor.a <= 0.1 && in.faceColor.r >= 0.9;
-	if isMirror {
-		out.color = in.faceColor;
-		var gx = step(0.5, fract(in.worldPosition.x / 10.0));
-		var gy = step(0.5, fract(in.worldPosition.z / 10.0));
-		var q = abs(gy - gx);
-		// Flag as mirror
-		out.mirror.a = 1.0;
-
-		// Magic numbers change type of reflection
-		out.mirror.r = 1.0 - q;
-		out.mirror.g = q;
-		out.mirror.b = 0.0;
-
-		out.bloom = vec4(0.0);
-	}
-
-	if false {
-		out.color = mix(wire, vec4(in.normal, 1.0), g);
-	}
+	out.color = color;
 	return out;
 }
 

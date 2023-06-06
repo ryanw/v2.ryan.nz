@@ -64,7 +64,8 @@ export class ComposePipeline extends Pipeline {
 				{ binding: 1, resource: buffer.bloom.createView() },
 				{ binding: 2, resource: buffer.mirror.createView() },
 				{ binding: 3, resource: (reflection || this.dummy).createView() },
-				{ binding: 4, resource: { buffer: this.uniformBuffer } },
+				{ binding: 4, resource: buffer.depth.createView() },
+				{ binding: 5, resource: { buffer: this.uniformBuffer } },
 			],
 		});
 

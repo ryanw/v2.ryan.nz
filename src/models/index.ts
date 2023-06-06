@@ -1,5 +1,7 @@
 import { Point3, Vector3 } from '../math';
 import { cross, normalize, subtract } from '../math/vectors';
+export { buildQuad } from './quad';
+export { buildIcosahedron } from './icosahedron';
 
 export interface BaseVertex {
 	position: Point3;

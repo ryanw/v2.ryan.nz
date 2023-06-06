@@ -1,25 +1,11 @@
 import { GBuffer } from '../gbuffer';
 import { Camera } from '../../../camera';
 import { Context } from '../../../context';
-import { Matrix4, Point3, Vector3, Vector4 } from '../../../math';
-import { Mesh } from '../../../mesh';
 import { Pipeline } from '../../../pipeline';
-import SHADER_SOURCE from './wireframe.wgsl';
+import SHADER_SOURCE from './road.wgsl';
+import { Entity } from './wireframe';
 
-export interface Entity {
-	transform: Matrix4;
-	mesh: Mesh<WireVertex>;
-}
-
-export interface WireVertex {
-	position: Point3;
-	barycentric: Point3;
-	normal: Vector3;
-	wireColor: Vector4;
-	faceColor: Vector4;
-}
-
-export class WireframePipeline extends Pipeline {
+export class RoadPipeline extends Pipeline {
 	private pipeline: GPURenderPipeline;
 	private entityBuffers: Record<number, GPUBuffer>;
 	private entityBindGroups: Record<number, GPUBindGroup>;
@@ -32,19 +18,19 @@ export class WireframePipeline extends Pipeline {
 		const { device } = ctx;
 
 		const module = device.createShaderModule({
-			label: 'Wireframe Shader Module',
+			label: 'Road Shader Module',
 			code: SHADER_SOURCE,
 		});
 
 		this.entityBuffers = {};
 		this.uniformBuffer = device.createBuffer({
-			label: 'Wireframe Render Uniform Buffer',
+			label: 'Road Render Uniform Buffer',
 			size: 256,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 			mappedAtCreation: false,
 		});
 		this.pipeline = device.createRenderPipeline({
-			label: 'Wireframe Render Pipeline',
+			label: 'Road Render Pipeline',
 			layout: 'auto',
 			vertex: { module, entryPoint: 'vs_main', buffers: VERTEX_BUFFER_LAYOUT },
 			fragment: {
@@ -66,7 +52,7 @@ export class WireframePipeline extends Pipeline {
 		});
 		this.entityBindGroups = {};
 		this.uniformBindGroup = device.createBindGroup({
-			label: 'Wireframe Render Uniform Bind Group',
+			label: 'Road Render Uniform Bind Group',
 			layout: this.pipeline.getBindGroupLayout(1),
 			entries: [{
 				binding: 0,
@@ -133,13 +119,13 @@ export class WireframePipeline extends Pipeline {
 		// Update entity uniform
 		if (!this.entityBuffers[id]) {
 			this.entityBuffers[id] = device.createBuffer({
-				label: 'Wireframe Render Entity Buffer',
+				label: 'Road Render Entity Buffer',
 				size: 256,
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 				mappedAtCreation: false,
 			});
 			this.entityBindGroups[id] = device.createBindGroup({
-				label: 'Wireframe Render Entity Bind Group',
+				label: 'Road Render Entity Bind Group',
 				layout: this.pipeline.getBindGroupLayout(0),
 				entries: [{
 					binding: 0,

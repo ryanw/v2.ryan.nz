@@ -16,6 +16,8 @@ var inMirror: texture_2d<f32>;
 @group(0) @binding(3)
 var inReflection: texture_2d<f32>;
 @group(0) @binding(4)
+var inDepth: texture_2d<f32>;
+@group(0) @binding(5)
 var<uniform> u: Uniforms;
 
 @vertex
@@ -43,18 +45,22 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	var bloom = textureLoad(inBloom, coord, 0);
 	var mirror = textureLoad(inMirror, coord, 0);
 	var reflection = textureLoad(inReflection, coord, 0);
+	var depth = textureLoad(inDepth, coord, 0).r;
 
-	if u.reflection > 0 && mirror.b > 0.0 {
+
+	if u.reflection > 0 && mirror.a > 0.0 {
 
 		if true {
+			var mirrorColor = vec4(0.0);
 			if mirror.r > 0.0 {
 				reflection = blur(inReflection, vec2<i32>(coord), 3, 4);
-				albedo = mix(vec4(0.15, 0.15, 0.15, 1.0), reflection, 0.15);
+				mirrorColor = mix(vec4(0.15, 0.15, 0.15, 1.0), reflection, 0.15);
 			}
 			else {
 				reflection = blur(inReflection, vec2<i32>(coord), 1, 1);
-				albedo = mix(vec4(0.15, 0.15, 0.15, 1.0), reflection, 0.4);
+				mirrorColor = mix(vec4(0.15, 0.15, 0.15, 1.0), reflection, 0.4);
 			}
+			albedo = mix(albedo, mirrorColor, mirror.a);
 		}
 		else {
 			if mirror.r > 0.0 {
@@ -65,7 +71,26 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 		}
 	}
 
-	return albedo + bloom;
+	let fog = pow(smoothstep(0.49, 0.50, depth), 4.0);
+	//let fogColor = vec4(0.15, 0.05, 0.2, 1.0);
+	let fogColor = vec4(0.5, 0.05, 0.8, 1.0);
+	albedo = mix(albedo, fogColor, fog);
+	bloom = mix(bloom, vec4(0.0, 0.0, 0.0, 1.0), fog);
+
+	var color = albedo + bloom * 0.33;
+	//color = mix(color, vec4(0.3, 0.1, 0.3, 1.0), fog);
+	if (depth == 1.0) {
+		// Transparent sky
+		if u.reflection > 0 {
+			let m = smoothstep(0.5, 0.7, in.uv.y);
+			color = mix(color, vec4(0.0), clamp(m, 0.0, 1.0));
+		} else {
+			let m = smoothstep(0.5, 0.7, 1.0 - in.uv.y);
+			color = mix(color, vec4(0.0), clamp(m, 0.0, 1.0));
+		}
+	}
+	
+	return color;
 }
 
 fn blur(tex: texture_2d<f32>, coord: vec2<i32>, kernel: i32, spread: i32) -> vec4<f32> {

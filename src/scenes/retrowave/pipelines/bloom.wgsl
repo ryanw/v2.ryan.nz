@@ -1,5 +1,6 @@
 struct Uniforms {
 	radius: f32,
+	kernel: f32,
 	amount: f32,
 }
 
@@ -17,7 +18,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let size = vec2<i32>(textureDimensions(inColor));
 	var coord = vec2<i32>(global_id.xy);
 
-	var color = blur(inColor, coord, 5, u.radius);
+	var color = blur(inColor, coord, i32(ceil(u.kernel)), u.radius);
 	textureStore(outColor, coord, color);
 }
 

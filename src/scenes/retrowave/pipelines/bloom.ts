@@ -55,7 +55,7 @@ export class BloomPipeline extends Pipeline {
 		});
 	}
 
-	run(encoder: GPUCommandEncoder, buffer: GBuffer, radius: number = 1, brightness: number = 2.0) {
+	run(encoder: GPUCommandEncoder, buffer: GBuffer, radius: number = 1, kernel: number = 3, amount: number = 2.0) {
 		const { device } = this.ctx;
 		const { width, height } = buffer.bloom;
 		this.resizeTexture(width, height);
@@ -64,8 +64,10 @@ export class BloomPipeline extends Pipeline {
 		device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([
 			// Uniforms.radius
 			radius,
+			// Uniforms.kernel
+			kernel,
 			// Uniforms.amount
-			brightness,
+			amount,
 		]));
 
 		const passDescriptor: GPUComputePassDescriptor = {};
