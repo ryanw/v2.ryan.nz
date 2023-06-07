@@ -1,6 +1,5 @@
 import { GBuffer } from '../gbuffer';
-import { Context } from '../../../context';
-import { Pipeline } from '../../../pipeline';
+import { Context, Pipeline } from 'engine';
 import SHADER_SOURCE from './bloom.wgsl';
 
 export class BloomPipeline extends Pipeline {

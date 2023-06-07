@@ -1,16 +1,12 @@
-import { PHI, Point3, Vector2 } from '../math';
-import { Camera } from '../camera';
-import { Context } from '../context';
-import { Scene } from '../scene';
-import { cross, normalize, subtract } from '../math/vectors';
-import { Mesh } from '../mesh';
-import { multiply, rotation, scaling, translation } from '../math/transform';
-import { Entity, Vertex, SpeccyPipeline } from '../pipelines/speccy';
-import { Color } from '../lib';
-import { ComposePipeline } from '../pipelines/compose';
-import { GBuffer } from '../gbuffer';
-import { PixelatePipeline } from '../pipelines/pixelate';
-import { ICOSAHEDRON_TRIS, ICOSAHEDRON_VERTICES } from '../models/icosahedron';
+import { Camera, Context, Scene, Mesh, Color } from 'engine';
+import { Point3, Vector2 } from 'engine/math';
+import { cross, normalize, subtract } from 'engine/math/vectors';
+import { multiply, rotation, translation } from 'engine/math/transform';
+import { Entity, Vertex, SpeccyPipeline } from './pipelines/speccy';
+import { ComposePipeline } from './pipelines/compose';
+import { GBuffer } from './gbuffer';
+import { PixelatePipeline } from './pipelines/pixelate';
+import { ICOSAHEDRON_TRIS, ICOSAHEDRON_VERTICES } from 'engine/models/icosahedron';
 
 export class ZXScene extends Scene {
 	private entities: Array<Entity>;
@@ -144,7 +140,7 @@ export class ZXScene extends Scene {
 		const [w, h] = ctx.size;
 		this.gbuffer.resize(w, h);
 
-		ctx.encode(encoder => {
+		ctx.encode(() => {
 			this.terrainPipeline.drawBatch(this.gbuffer, camera || this.camera, this.chunks, true);
 			this.entityPipeline.drawBatch(this.gbuffer, camera || this.camera, this.entities);
 		});

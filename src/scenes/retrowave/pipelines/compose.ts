@@ -1,8 +1,6 @@
+import { Context, Pipeline, createTexture } from 'engine';
 import { GBuffer } from '../gbuffer';
-import { Context } from '../../../context';
-import { Pipeline } from '../../../pipeline';
 import SHADER_SOURCE from './compose.wgsl';
-import { createTexture } from '../../../lib';
 
 export interface Options {
 	fog: number;

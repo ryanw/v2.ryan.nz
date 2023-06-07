@@ -1,9 +1,6 @@
-import { Camera } from '../camera';
-import { Context } from '../context';
+import { Camera, Context, Mesh, Pipeline } from 'engine';
+import { Matrix4, Point3, Vector3, Vector4 } from 'engine/math';
 import { GBuffer } from '../gbuffer';
-import { Matrix4, Point3, Vector3, Vector4 } from '../math';
-import { Mesh } from '../mesh';
-import { Pipeline } from '../pipeline';
 import SHADER_SOURCE from './speccy.wgsl';
 
 export interface Entity {

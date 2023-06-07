@@ -1,4 +1,5 @@
 const path = require('path');
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const webpack = require('webpack');
 
 const production = (process.env.NODE_ENV === 'production');
@@ -26,7 +27,7 @@ module.exports = {
 	module: {
 		rules: [
 			// Typescript
-			{ test: /\.ts$/, use: 'ts-loader' },
+			{ test: /\.ts$/, loader: 'ts-loader', options: { configFile: 'tsconfig.json' }, exclude: /node_modules/ },
 
 			// Static files
 			{ test: /\.(glsl|wgsl|html|css)$/, use: ['raw-loader'] },
@@ -34,6 +35,11 @@ module.exports = {
 	},
 	resolve: {
 		extensions: [ '.ts', '.js' ],
+		plugins: [
+			new TsconfigPathsPlugin({
+				configFile: 'tsconfig.json',
+			}),
+		],
 	},
 	plugins: [
 		new webpack.DefinePlugin({

@@ -1,8 +1,7 @@
-import { Context } from './context';
-import { InputHandler } from './lib';
-import { Vector2, Vector3 } from './math';
-import { Retrowave } from './scenes/retrowave';
-import { attachUi } from './ui';
+import { InputHandler, Context } from 'engine';
+import { Vector2, Vector3 } from 'engine/math';
+import { Retrowave as DemoScene } from './scenes/retrowave';
+//import { ZXScene as DemoScene } from './scenes/zx';
 
 /**
  * Application entry point
@@ -60,7 +59,7 @@ async function main() {
 
 
 	const inputHandler = new InputHandler(window);
-	const scene = new Retrowave(ctx);
+	const scene = new DemoScene(ctx);
 
 	if (el.parentNode) {
 		//attachUi(scene);

@@ -1,5 +1,4 @@
-import { Context } from '../../context';
-import { createTexture } from '../../lib';
+import { Context, createTexture } from 'engine';
 
 export const DEPTH_FORMAT: GPUTextureFormat = 'depth16unorm';
 

@@ -1,7 +1,5 @@
 import { GBuffer } from '../gbuffer';
-import { Camera } from '../../../camera';
-import { Context } from '../../../context';
-import { Pipeline } from '../../../pipeline';
+import { Camera, Context, Pipeline } from 'engine';
 import SHADER_SOURCE from './road.wgsl';
 import { Entity } from './wireframe';
 

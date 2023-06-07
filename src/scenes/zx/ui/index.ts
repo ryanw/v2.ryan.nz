@@ -1,7 +1,6 @@
-import { Context } from '../context';
 import template from './template.html';
 import styles from './styles.css';
-import { ZXScene } from '../scenes/zx';
+import { ZXScene } from '../../zx';
 import { Options, Shading } from '../pipelines/compose';
 
 export function attachUi(scene: ZXScene) {

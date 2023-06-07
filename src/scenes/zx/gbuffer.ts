@@ -1,4 +1,4 @@
-import { Context } from './context';
+import { Context } from 'engine';
 
 export const DEPTH_FORMAT: GPUTextureFormat = 'depth16unorm';
 

@@ -1,5 +1,4 @@
-import { Context } from './lib';
-import { ComposePipeline } from './pipelines/compose';
+import { Context } from './context';
 
 export abstract class Scene {
 	readonly ctx: Context;

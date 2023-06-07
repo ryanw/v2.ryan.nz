@@ -1,6 +1,5 @@
-import { Context } from '../context';
+import { Context, Pipeline } from 'engine';
 import { GBuffer } from '../gbuffer';
-import { Pipeline } from '../pipeline';
 import SHADER_SOURCE from './compose.wgsl';
 
 export enum Shading {

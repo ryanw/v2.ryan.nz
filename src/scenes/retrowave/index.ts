@@ -1,17 +1,14 @@
-import { Camera } from '../camera';
-import { Context } from '../context';
-import { GBuffer } from './retrowave/gbuffer';
-import { Entity, WireVertex } from './retrowave/pipelines/wireframe';
-import { Scene } from '../scene';
-import { buildIcosahedron } from '../models/icosahedron';
-import { Mesh } from '../mesh';
-import { identity, multiply, reflectY, rotation, translation } from '../math/transform';
-import { BloomPipeline, WireframePipeline, ComposePipeline } from './retrowave/pipelines';
-import { calculateNormals, buildQuad } from '../models';
-import { Matrix4, Point3, Vector2, Vector3 } from '../math';
-import { Color, createTexture } from '../lib';
-import { normalize, scale } from '../math/vectors';
-import { RoadPipeline } from './retrowave/pipelines/road';
+import { Camera, Context, Scene, Mesh, Color, createTexture  } from 'engine';
+import { identity, multiply, reflectY, rotation, translation } from 'engine/math/transform';
+import { buildIcosahedron } from 'engine/models/icosahedron';
+import { calculateNormals, buildQuad } from 'engine/models';
+import { Matrix4, Point3, Vector2, Vector3 } from 'engine/math';
+import { normalize, scale } from 'engine/math/vectors';
+
+import { Entity, WireVertex } from './pipelines/wireframe';
+import { GBuffer } from './gbuffer';
+import { BloomPipeline, WireframePipeline, ComposePipeline } from './pipelines';
+import { RoadPipeline } from './pipelines/road';
 
 export type EntityProps = Partial<SceneEntity> & { mesh: SceneEntity['mesh'] };
 

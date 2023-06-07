@@ -5,8 +5,6 @@ export { Context } from './context';
 export { Pipeline } from './pipeline';
 export { InputHandler } from './input';
 
-import * as scenes from './scenes';
-export { scenes };
 import * as math from './math';
 import { Context } from './context';
 export { math };

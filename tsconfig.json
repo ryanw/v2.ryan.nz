@@ -10,6 +10,11 @@
 		"allowJs": true,
 		"allowSyntheticDefaultImports": true,
 		"strict": true,
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"baseUrl": "./",
+		"paths": {
+			"engine": ["src/engine/index.ts"],
+			"engine/*": ["src/engine/*"]
+		}
 	}
 }
