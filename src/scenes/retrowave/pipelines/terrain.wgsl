@@ -33,16 +33,40 @@ struct VertexOut {
 struct FragmentOut {
 	@location(0) color: vec4<f32>,
 	@location(1) bloom: vec4<f32>,
-	@location(2) mirror: vec4<f32>,
 }
 
 @group(0) @binding(0)
 var<uniform> entity: Entity;
 
+
 @group(1) @binding(0)
 var<uniform> u: Uniforms;
 
+@group(1) @binding(1)
+var heightmap: texture_2d<f32>;
+
 var<private> lightPosition = vec3(0.0, 64.0, 0.0);
+
+fn getDisplacement(p: vec2<f32>) -> f32 {
+	let texSize = vec2<f32>(textureDimensions(heightmap));
+
+	let uv = p * texSize;
+
+	let uvFloor = floor(uv);
+	let uvFract = fract(uv);
+
+	let t0 = textureLoad(heightmap, vec2<i32>(uvFloor), 0).r;
+	let t1 = textureLoad(heightmap, vec2<i32>(uvFloor) + vec2(1, 0), 0).r;
+	let t2 = textureLoad(heightmap, vec2<i32>(uvFloor) + vec2(0, 1), 0).r;
+	let t3 = textureLoad(heightmap, vec2<i32>(uvFloor) + vec2(1, 1), 0).r;
+
+	let t4 = mix(t0, t1, uvFract.x);
+	let t5 = mix(t2, t3, uvFract.x);
+
+	let t6 = mix(t4, t5, uvFract.y);
+
+	return t6;
+}
 
 @vertex
 fn vs_main(in: WireVertex) -> VertexOut {
@@ -50,8 +74,15 @@ fn vs_main(in: WireVertex) -> VertexOut {
 	let mv = u.camera.view * entity.model;
 	let mvp = u.camera.projection * mv;
 
+	let displacement = getDisplacement(in.position.xz / 256.0 + vec2(0.5));
+	var displaceAmount = 4.0;
+	displaceAmount *= smoothstep(0.2, 2.0, abs(in.position.x) / 8.0);
+	displaceAmount *= clamp(displaceAmount, 0.0, 1.0);
+
+
 	let worldPosition = entity.model * vec4(in.position, 1.0);
-	let position = mvp * vec4(in.position, 1.0);
+
+	let position = mvp * vec4(in.position + vec3(0.0, displacement * displaceAmount, 0.0), 1.0);
 	let normal = normalize((entity.model * vec4(in.normal, 0.0)).xyz);
 	out.position = position;
 	out.worldPosition = worldPosition.xyz / worldPosition.w;
@@ -73,27 +104,18 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 	let lightDir = normalize(lightPosition - in.worldPosition);
 	let shade = clamp(dot(in.normal, lightDir), 0.0, 1.0);
 
-	let roadColor = vec4(0.0, 0.0, 0.0, 1.0);
-	let lineColor = vec4(0.9, 0.8, 0.0, 1.0);
 
-	let seg = 10.0;
+	color = vec4(0.0);
 
-	let linePos = (sin(in.worldPosition.z / 1.5));
-	var center = smoothstep(0.0, 1.0 / 100.0, linePos);
-	center *= 1.0 - smoothstep(0.1, 0.12, abs(in.worldPosition.x));
-	color = mix(roadColor, lineColor, center);
 
-	var gx = step(0.5, fract(in.worldPosition.x / 10.0));
-	var gy = step(0.5, fract(in.worldPosition.z / 10.0));
-	var q = abs(gy - gx);
-	// Flag as mirror
-	out.mirror.a = 1.0 - center;
+	let g = edgeDistance(in.barycentric, 1.5, 0.5);
 
-	// Magic numbers change type of reflection
-	out.mirror.r = q;
-	out.bloom = vec4(lineColor.rgb * min(1.0, center), 1.0);
+	let wire = in.wireColor;
+	let face = in.faceColor;
+	let n = 0.01;
+	out.color = mix(wire, face, g);
+	out.bloom = mix(vec4(0.0), wire, (1.0 - g) / 5.0);
 
-	out.color = color;
 	return out;
 }
 

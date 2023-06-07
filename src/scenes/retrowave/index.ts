@@ -1,4 +1,4 @@
-import { Camera, Context, Scene, Mesh, Color, createTexture  } from 'engine';
+import { Camera, Context, Scene, Mesh, Color, createTexture } from 'engine';
 import { identity, multiply, reflectY, rotation, translation } from 'engine/math/transform';
 import { buildIcosahedron } from 'engine/models/icosahedron';
 import { calculateNormals, buildQuad } from 'engine/models';
@@ -9,12 +9,18 @@ import { Entity, WireVertex } from './pipelines/wireframe';
 import { GBuffer } from './gbuffer';
 import { BloomPipeline, WireframePipeline, ComposePipeline } from './pipelines';
 import { RoadPipeline } from './pipelines/road';
+import { Chunk, Terrain } from './terrain';
+import { TerrainPipeline } from './pipelines/terrain';
+import { TerrainGenPipeline } from './pipelines/terrain_gen';
+
+export type ChunkId = string;
 
 export type EntityProps = Partial<SceneEntity> & { mesh: SceneEntity['mesh'] };
 
 export enum Material {
 	Wire,
 	Road,
+	Terrain,
 }
 
 class SceneEntity implements Entity {
@@ -36,28 +42,39 @@ export class Retrowave extends Scene {
 	camera = new Camera();
 	wirePipeline: WireframePipeline;
 	roadPipeline: RoadPipeline;
+	terrainRenderPipeline: TerrainPipeline;
 	bloomPipeline: BloomPipeline;
+	terrainGenPipeline: TerrainGenPipeline;
 	rgbComposePipeline: ComposePipeline;
 	bgrComposePipeline: ComposePipeline;
 	buffer: GBuffer;
 	reflectBuffer: GBuffer;
 	mainOutput: GPUTexture;
 	reflectOutput: GPUTexture;
+	playerLocation: Point3 = [0, 0, 0];
+	terrain: Terrain<WireVertex>;
+	chunks: Record<ChunkId, Chunk<WireVertex>> = {};
+	heightmap: GPUTexture;
 
 	constructor(ctx: Context) {
 		super(ctx);
 		this.wirePipeline = new WireframePipeline(ctx);
 		this.roadPipeline = new RoadPipeline(ctx);
 		this.bloomPipeline = new BloomPipeline(ctx);
+		this.terrainGenPipeline = new TerrainGenPipeline(ctx);
 		this.rgbComposePipeline = new ComposePipeline(ctx, 'rgba8unorm');
 		this.bgrComposePipeline = new ComposePipeline(ctx);
 		this.buffer = new GBuffer(ctx);
 		this.reflectBuffer = new GBuffer(ctx);
 		this.mainOutput = createTexture(ctx, 'rgba8unorm');
 		this.reflectOutput = createTexture(ctx, 'rgba8unorm');
+		this.heightmap = createTexture(ctx, 'r32float', [32, 32], 'Heightmap Texture');
+		this.terrainRenderPipeline = new TerrainPipeline(ctx, this.heightmap);
 		this.entities = [];
-		this.camera.position[1] += 5.0;
-		this.camera.position[2] += 128.0;
+		this.camera.position[1] += 1.0;
+		this.camera.position[2] += 0.0;
+
+		ctx.encode(encoder => this.terrainGenPipeline.run(encoder, this.heightmap));
 
 		const barycentric: Array<Point3> = [
 			[1, 0, 0],
@@ -65,20 +82,24 @@ export class Retrowave extends Scene {
 			[0, 0, 1],
 		];
 
-		const baseVertices = buildIcosahedron((position, i) => ({
-			position,
-			barycentric: barycentric[i % 3],
-			normal: [0.0, 1.0, 0.0],
-			wireColor: [0.8, 1.0, 0.0, 1.0],
-			faceColor: [0.3, 0.1, 0.5, 1.0],
-		} as WireVertex));
+		const vertexBuilder = (wireColor: Color, faceColor: Color) =>
+			(position: Point3, i: number): WireVertex => ({
+				position,
+				barycentric: barycentric[i % 3],
+				normal: [0.0, 1.0, 0.0],
+				wireColor,
+				faceColor,
+			} as WireVertex);
+
+		this.terrain = new Terrain(ctx, 128, vertexBuilder([0.5, 0.8, 0.1, 1.0], [0.2, 0.05, 0.3, 1.0]));
+
+		const baseVertices = buildIcosahedron(vertexBuilder([0.8, 1.0, 0.0, 1.0], [0.3, 0.1, 0.5, 1.0]));
 		calculateNormals(baseVertices);
 
 		const rn = Math.random;
-		const randomColor = () => [rn() * 0.7, rn() * 0.7, rn() * 0.7, 0.1] as Color;
 
-		const wireColor = randomColor();
-		const faceColor = randomColor();
+		const wireColor: Color = [0.8, 1.0, 0.0, 1.0];
+		const faceColor: Color = [0.1, 0.01, 0.4, 1.0];
 		const icosVertices = baseVertices.map(v => ({
 			...v,
 			wireColor,
@@ -98,6 +119,7 @@ export class Retrowave extends Scene {
 			}));
 		}
 
+		/*
 		const divisions = 128;
 		const scale = 320.0;
 		const terrainVertices = subdividedPlane(divisions, scale, [0, 0]);
@@ -112,9 +134,10 @@ export class Retrowave extends Scene {
 			transform: translation(x * scale * 2 + 2.5, 0, y * scale * 2 + 2.5),
 			seed: 0,
 		}));
+		*/
 
 		const roadVertices = buildQuad<WireVertex>((position, i) => ({
-			position: [position[0] * 9.99, position[2], position[1] * 310.0],
+			position: [position[0] * 2.99, position[2], position[1] * 256.0],
 			barycentric: barycentric[i % 3],
 			normal: [0.0, 1.0, 0.0],
 			wireColor: [1.0, 1.0, 0.0, 0.0],
@@ -128,6 +151,40 @@ export class Retrowave extends Scene {
 			rotation: [0, 0, 0],
 			transform: translation(0, 0.0, -10),
 		}));
+
+		this.addChunk(0, 0);
+	}
+
+	addChunk(x: number, y: number) {
+		setTimeout(() => {
+			const id: ChunkId = [x, y].join(',');
+			if (this.chunks[id]) return;
+
+			const chunk = this.terrain.generateChunk(x, y);
+			this.chunks[id] = chunk;
+
+			this.entities.push(new SceneEntity({
+				mesh: chunk.mesh,
+				material: Material.Terrain,
+				showInMirror: false,
+				rotation: [0, 0, 0],
+				transform: translation(0, 0, 0),
+			}));
+		}, 1);
+	}
+
+	removeChunk(x: number, y: number) {
+		setTimeout(() => {
+			const id: ChunkId = [x, y].join(',');
+			if (this.chunks[id]) {
+				// FIXME remove entity
+				delete this.chunks[id];
+			}
+		}, 1);
+	}
+
+	updateWorld() {
+		this.ctx.encode(encoder => this.terrainGenPipeline.run(encoder, this.heightmap));
 	}
 
 	updateEntities(dt: number) {
@@ -187,6 +244,11 @@ export class Retrowave extends Scene {
 				this.roadPipeline.draw(encoder, id, buffer, entity, camera);
 				break;
 			}
+
+			case Material.Terrain: {
+				this.terrainRenderPipeline.draw(encoder, id, buffer, entity, camera);
+				break;
+			}
 		}
 	}
 
@@ -231,6 +293,7 @@ export class Retrowave extends Scene {
 	async draw(camera?: Camera) {
 		return new Promise(resolve =>
 			requestAnimationFrame(() => {
+				this.updateWorld();
 				this.updateEntities(1 / 60);
 				this.drawFrame(camera);
 				resolve(void 0);

@@ -19,7 +19,7 @@ export function createTexture({ device }: Context, format: GPUTextureFormat, siz
 		GPUTextureUsage.TEXTURE_BINDING |
 		GPUTextureUsage.COPY_DST;
 
-	if (format === 'rgba8unorm' || format === 'rgba8uint') {
+	if (format === 'rgba8unorm' || format === 'rgba8uint' || format === 'r32float') {
 		usage |= GPUTextureUsage.STORAGE_BINDING;
 	}
 	return device.createTexture({
