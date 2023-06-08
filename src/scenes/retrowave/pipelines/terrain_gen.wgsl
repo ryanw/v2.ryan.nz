@@ -1,6 +1,6 @@
 struct Uniforms {
+	offset: vec3<f32>,
 	t: f32,
-	scale: vec3<f32>,
 }
 
 @group(0) @binding(0)
@@ -14,21 +14,72 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let size = vec2<i32>(textureDimensions(heightmap));
 	var coord = vec2<i32>(global_id.xy);
 
-	var h = rnd4(vec4(vec2<f32>(global_id.xy), 0.0, 0.0));
-	h *= 2.0;
-	h -= 1.0;
-	h *= 3.0;
-	h *= smoothstep(0.0, 2.0, u.t / 2.0);
-	
+	var offset = u.offset.xz;
 
-	textureStore(heightmap, coord, vec4(h) + vec4(u.scale.xyz, 0.0));
+	var samplePos = vec2<i32>(global_id.xy);
+	samplePos += vec2<i32>(floor(offset));
+
+	//var h = rnd4(vec4(vec2<f32>(samplePos), 0.0, 0.0));
+	let p = vec3(vec2<f32>(samplePos), 0.0);
+	var h = fractalNoise(p, 1.0, 4);
+
+	textureStore(heightmap, coord, vec4(h * 4.0));
 }
 
 const SALT: u32 = 0xDEADBEEFu;
 
+fn fractalNoise(pp: vec3<f32>, freq: f32, octaves: u32) -> f32 {
+	var h = 0.0;
+	var p = pp;
+	var f = freq / 32.0;
+	var a = 1.0;
+	for (var i = 0u; i < octaves; i++) {
+		h += smoothNoise(p * f) * a;
+		f *= 2.0;
+		a /= 2.0;
+	}
+	return h;
+}
+
+fn smoothVec(v: vec3<f32>) -> vec3<f32> {
+	return v * v * (3.0 - 2.0 * v);
+}
+
+fn smoothNoise(v: vec3<f32>) -> f32 {
+	let lv = smoothVec(fract(v));
+	let id = floor(v);
+
+	let bnl = rnd3(id + vec3(0.0, 0.0, 0.0));
+	let bnr = rnd3(id + vec3(1.0, 0.0, 0.0));
+	let bn = mix(bnl, bnr, lv.x);
+
+	let bfl = rnd3(id + vec3(0.0, 0.0, 1.0));
+	let bfr = rnd3(id + vec3(1.0, 0.0, 1.0));
+	let bf = mix(bfl, bfr, lv.x);
+
+	let b = mix(bn, bf, lv.z);
+
+	let tnl = rnd3(id + vec3(0.0, 1.0, 0.0));
+	let tnr = rnd3(id + vec3(1.0, 1.0, 0.0));
+	let tn = mix(tnl, tnr, lv.x);
+
+	let tfl = rnd3(id + vec3(0.0, 1.0, 1.0));
+	let tfr = rnd3(id + vec3(1.0, 1.0, 1.0));
+	let tf = mix(tfl, tfr, lv.x);
+
+	let t = mix(tn, tf, lv.z);
+
+	let c = mix(b, t, lv.y);
+
+	return c * 2.0 - 1.0;
+}
+
 fn rnd4(seed: vec4<f32>) -> f32 {
 	var useed = bitcast<vec4<u32>>(seed);
 	return rnd4u(useed);
+}
+fn rnd3(seed: vec3<f32>) -> f32 {
+	return rnd4(vec4(seed, 0.0));
 }
 
 fn salt(seed: u32) -> u32 {

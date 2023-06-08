@@ -1,5 +1,6 @@
 import { Context, Pipeline } from 'engine';
 import SHADER_SOURCE from './terrain_gen.wgsl';
+import { Point2 } from 'engine/math';
 
 export class TerrainGenPipeline extends Pipeline {
 	pipeline: GPUComputePipeline;
@@ -26,13 +27,15 @@ export class TerrainGenPipeline extends Pipeline {
 		});
 	}
 
-	run(encoder: GPUCommandEncoder, heightmap: GPUTexture) {
+	run(encoder: GPUCommandEncoder, offset: Point2, heightmap: GPUTexture) {
 		const { device } = this.ctx;
 		const { width, height } = heightmap;
 
 		const t = performance.now() / 1000.0;
 		device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([
-			t, 0.0, 0.0, 0.0
+			offset[0], 0.0, offset[1],
+			0.0,
+			t
 		]));
 
 		const passDescriptor: GPUComputePassDescriptor = {};

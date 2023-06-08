@@ -64,9 +64,9 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 		}
 		else {
 			if mirror.r > 0.0 {
-				albedo = mix(reflection, vec4(0.1, 0.1, 0.9, 1.0), 1.0/10.0);
+				albedo = mix(reflection, vec4(0.1, 0.1, 0.9, 1.0), 0.4);
 			} else {
-				albedo = mix(reflection, vec4(0.9, 0.1, 0.1, 1.0), 1.0/10.0);
+				albedo = mix(reflection, vec4(0.9, 0.1, 0.1, 1.0), 0.4);
 			}
 		}
 	}

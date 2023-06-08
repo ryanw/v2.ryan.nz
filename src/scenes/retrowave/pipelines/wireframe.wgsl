@@ -96,6 +96,7 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 	out.mirror *= fog;
 	*/
 
+	/*
 	// FIXME custom materials
 	let isMirror = in.faceColor.a <= 0.1 && in.faceColor.r >= 0.9;
 	if isMirror {
@@ -113,6 +114,7 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 
 		out.bloom = vec4(0.0);
 	}
+	*/
 
 	if false {
 		out.color = mix(wire, vec4(in.normal, 1.0), g);

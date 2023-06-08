@@ -1,16 +1,20 @@
 import { GBuffer } from '../gbuffer';
-import { Camera, Context, Pipeline } from 'engine';
+import { Camera, Context, Pipeline, createTexture } from 'engine';
 import SHADER_SOURCE from './terrain.wgsl';
-import { Entity } from './wireframe';
+import { Entity, WireVertex } from './wireframe';
+import { entry } from 'webpack.config';
+import { Chunk } from '../terrain';
+
+export type TerrainEntity = Entity & { chunk: Chunk<WireVertex>};
 
 export class TerrainPipeline extends Pipeline {
 	private pipeline: GPURenderPipeline;
 	private entityBuffers: Record<number, GPUBuffer>;
 	private entityBindGroups: Record<number, GPUBindGroup>;
 	private uniformBuffer: GPUBuffer;
-	private uniformBindGroup: GPUBindGroup;
+	private dummy: GPUTexture;
 
-	constructor(ctx: Context, heightmap: GPUTexture) {
+	constructor(ctx: Context) {
 		super(ctx);
 
 		const { device } = ctx;
@@ -37,6 +41,8 @@ export class TerrainPipeline extends Pipeline {
 					{ format: 'rgba8unorm' },
 					// Bloom
 					{ format: 'rgba8unorm' },
+					// Mirror
+					{ format: 'rgba8unorm' },
 				]
 			},
 			primitive: { topology: 'triangle-list' },
@@ -47,22 +53,7 @@ export class TerrainPipeline extends Pipeline {
 			},
 		});
 		this.entityBindGroups = {};
-		this.uniformBindGroup = device.createBindGroup({
-			label: 'Terrain Render Uniform Bind Group',
-			layout: this.pipeline.getBindGroupLayout(1),
-			entries: [
-				{
-					binding: 0,
-					resource: {
-						buffer: this.uniformBuffer,
-					}
-				},
-				{
-					binding: 1,
-					resource: heightmap.createView(),
-				},
-			]
-		});
+		this.dummy = createTexture(ctx, 'r32float');
 	}
 
 	clear(encoder: GPUCommandEncoder, gbuffer: GBuffer) {
@@ -103,17 +94,35 @@ export class TerrainPipeline extends Pipeline {
 		pass.end();
 	}
 
-	draw(encoder: GPUCommandEncoder, id: number, gbuffer: GBuffer, entity: Entity, camera: Camera) {
+	draw(encoder: GPUCommandEncoder, id: number, gbuffer: GBuffer, entity: TerrainEntity, camera: Camera) {
 		const { device } = this.ctx;
 		const { mesh, transform } = entity;
 
 		const albedoView = gbuffer.albedo.createView();
 		const bloomView = gbuffer.bloom.createView();
+		const mirrorView = gbuffer.mirror.createView();
 		const depthView = gbuffer.depth.createView();
 
 		// Update camera uniform
 		const t = performance.now() / 1000.0;
 		device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([...camera.model, ...camera.projection, t]));
+
+		const uniformBindGroup = device.createBindGroup({
+			label: 'Terrain Render Uniform Bind Group',
+			layout: this.pipeline.getBindGroupLayout(1),
+			entries: [
+				{
+					binding: 0,
+					resource: {
+						buffer: this.uniformBuffer,
+					}
+				},
+				{
+					binding: 1,
+					resource: (entity.chunk ? entity.chunk.heightmap : this.dummy).createView(),
+				},
+			]
+		});
 
 		// Update entity uniform
 		if (!this.entityBuffers[id]) {
@@ -140,6 +149,7 @@ export class TerrainPipeline extends Pipeline {
 			colorAttachments: [
 				{ view: albedoView, loadOp: 'load', storeOp: 'store' },
 				{ view: bloomView, loadOp: 'load', storeOp: 'store' },
+				{ view: mirrorView, loadOp: 'load', storeOp: 'store' },
 			],
 			depthStencilAttachment: {
 				view: depthView,
@@ -152,7 +162,7 @@ export class TerrainPipeline extends Pipeline {
 		const pass = encoder.beginRenderPass(passDescriptor);
 		pass.setPipeline(this.pipeline);
 		pass.setBindGroup(0, this.entityBindGroups[id]);
-		pass.setBindGroup(1, this.uniformBindGroup);
+		pass.setBindGroup(1, uniformBindGroup);
 		pass.setVertexBuffer(0, mesh.buffers.position);
 		pass.setVertexBuffer(1, mesh.buffers.barycentric);
 		pass.setVertexBuffer(2, mesh.buffers.normal);
