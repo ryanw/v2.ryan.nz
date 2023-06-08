@@ -1,4 +1,4 @@
-import { Point3 } from "../math";
+import { Point3 } from '../math';
 
 const QUAD_VERTS: Array<Point3> = [
 	[-1.0, -1.0, 0.0],

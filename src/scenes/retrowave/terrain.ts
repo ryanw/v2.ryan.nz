@@ -56,7 +56,7 @@ export class Terrain<V extends Vertex<V>> {
 			offset,
 			mesh: this.chunkMesh,
 			heightmap,
-		}
+		};
 	}
 }
 

@@ -1,5 +1,5 @@
-import { PHI, Point3 } from "../math";
-import { cross, normalize, subtract } from "../math/vectors";
+import { PHI, Point3 } from '../math';
+import { cross, normalize, subtract } from '../math/vectors';
 
 export const ICOSAHEDRON_VERTICES: Array<Point3> = [
 	[-1, PHI, 0],
