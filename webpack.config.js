@@ -30,11 +30,19 @@ module.exports = {
 			{ test: /\.ts$/, loader: 'ts-loader', options: { configFile: 'tsconfig.json' }, exclude: /node_modules/ },
 
 			// Static files
-			{ test: /\.(glsl|wgsl|html|css)$/, use: ['raw-loader'] },
+			{ test: /\.(glsl|html|css)$/, use: ['raw-loader'] },
+
+			// WGSL Shader files
+			{
+				test: /\.(wgsl)$/,
+				use: [
+					{ loader: path.resolve('src/wgsl-loader.js') },
+				]
+			},
 		],
 	},
 	resolve: {
-		extensions: [ '.ts', '.js' ],
+		extensions: ['.ts', '.js'],
 		plugins: [
 			new TsconfigPathsPlugin({
 				configFile: 'tsconfig.json',
