@@ -168,6 +168,7 @@ export class TerrainPipeline extends Pipeline {
 		pass.setVertexBuffer(2, mesh.buffers.normal);
 		pass.setVertexBuffer(3, mesh.buffers.wireColor);
 		pass.setVertexBuffer(4, mesh.buffers.faceColor);
+		pass.setVertexBuffer(5, mesh.buffers.seed);
 		pass.draw(mesh.vertices.length);
 		pass.end();
 	}
@@ -214,5 +215,13 @@ const VERTEX_BUFFER_LAYOUT: Array<GPUVertexBufferLayout> = [
 			format: 'float32x4',
 		}],
 		arrayStride: 16,
+	},
+	{
+		attributes: [{
+			shaderLocation: 5, // Seed
+			offset: 0,
+			format: 'float32',
+		}],
+		arrayStride: 4,
 	},
 ];

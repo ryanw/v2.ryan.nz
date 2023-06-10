@@ -1,3 +1,5 @@
+@include 'engine/noise.wgsl';
+
 struct Camera {
 	view: mat4x4<f32>,
 	projection: mat4x4<f32>,
@@ -68,30 +70,39 @@ fn vs_main(in: WireVertex) -> VertexOut {
 @fragment
 fn fs_main(in: VertexOut) -> FragmentOut {
 	var out: FragmentOut;
-	var color = vec4(1.0);
+	var color = vec4(0.0, 0.0, 0.0, 1.0);
 
 	let lightDir = normalize(lightPosition - in.worldPosition);
 	let shade = clamp(dot(in.normal, lightDir), 0.0, 1.0);
 
-	let roadColor = vec4(0.0, 0.0, 0.0, 1.0);
-	let lineColor = vec4(0.9, 0.8, 0.0, 1.0);
+	let lineColor = vec4(0.9, 0.8, 0.01, 1.0);
+	let edgeColor = vec4(0.9, 0.01, 0.8, 1.0);
 
 	let seg = 10.0;
 
 	let linePos = (sin(in.worldPosition.z / 1.5));
 	var center = smoothstep(0.0, 1.0 / 100.0, linePos);
-	center *= 1.0 - smoothstep(0.1, 0.12, abs(in.worldPosition.x));
-	color = mix(roadColor, lineColor, center);
 
-	var gx = step(0.5, fract(in.worldPosition.x / 10.0));
-	var gy = step(0.5, fract(in.worldPosition.z / 10.0));
-	var q = abs(gy - gx);
+	center *= 1.0 - smoothstep(0.1, 0.12, abs(in.worldPosition.x));
+	color = mix(color, lineColor, center);
+
+	var edge = smoothstep(0.1, 0.12, abs(in.worldPosition.x) - 1.75);
+	color = mix(color, edgeColor, edge);
+
+	//var gx = step(0.5, fract(in.worldPosition.x / 10.0));
+	//var gy = step(0.5, fract(in.worldPosition.z / 10.0));
+	//var q = abs(gy - gx);
 	// Flag as mirror
-	out.mirror.a = 1.0 - center;
+	out.mirror.a = 1.0 - center - edge;
+
+
+	var q = fractalNoise(in.worldPosition, 20.0, 5);
+	q = smoothstep(-0.4, 1.0, q);
 
 	// Magic numbers change type of reflection
 	out.mirror.r = q;
 	out.bloom = vec4(lineColor.rgb * min(1.0, center), 1.0);
+	out.bloom.a = center - edge;
 
 	out.color = color;
 	return out;

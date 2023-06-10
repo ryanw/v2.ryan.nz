@@ -28,6 +28,7 @@ export class TerrainGenPipeline extends Pipeline {
 	}
 
 	run(encoder: GPUCommandEncoder, offset: Point2, heightmap: GPUTexture) {
+		if (!this.pipeline) return;
 		const { device } = this.ctx;
 		const { width, height } = heightmap;
 

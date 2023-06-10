@@ -65,6 +65,8 @@ async function main() {
 		//attachUi(scene);
 	}
 
+	setInterval(() => scene.updateEntities(1 / 60), 1000 / 60);
+
 
 	let mouse = [0, 0];
 	let now = performance.now();
@@ -77,7 +79,7 @@ async function main() {
 
 		const rotation: Vector2 = [0.0, 0.0];
 		const velocity: Vector3 = [0.0, 0.0, 0.0];
-		const speed = 10.0 * dt;
+		const speed = 16.0 * dt;
 		const rotSpeed = 1.0 / 1000.0;
 
 		if (inputHandler.held('a')) {

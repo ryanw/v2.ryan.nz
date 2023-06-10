@@ -39,7 +39,6 @@ export class ComposePipeline extends Pipeline {
 		const { device } = this.ctx;
 
 		device.queue.writeBuffer(this.uniformBuffer, 0, new Uint32Array([
-			// Uniforms.fog
 			reflection ? 1 : 0
 		]));
 

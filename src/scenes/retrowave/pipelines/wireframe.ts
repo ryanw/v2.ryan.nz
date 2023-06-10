@@ -14,6 +14,7 @@ export interface WireVertex {
 	normal: Vector3;
 	wireColor: Vector4;
 	faceColor: Vector4;
+	seed: number;
 }
 
 export class WireframePipeline extends Pipeline {

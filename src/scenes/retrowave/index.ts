@@ -2,7 +2,7 @@ import { Camera, Context, Scene, Mesh, Color, createTexture } from 'engine';
 import { identity, multiply, reflectY, rotation, scaling, translation } from 'engine/math/transform';
 import { buildIcosahedron } from 'engine/models/icosahedron';
 import { calculateNormals, buildQuad } from 'engine/models';
-import { Matrix4, Point3, Vector3 } from 'engine/math';
+import { Matrix4, Point2, Point3, Vector3 } from 'engine/math';
 import { normalize, scale } from 'engine/math/vectors';
 import { Entity, WireVertex } from './pipelines/wireframe';
 import { GBuffer } from './gbuffer';
@@ -19,6 +19,11 @@ export enum Material {
 	Wire,
 	Road,
 	Terrain,
+}
+
+export enum RenderMode {
+	Wireframe,
+	Shaded,
 }
 
 class SceneEntity implements Entity {
@@ -52,6 +57,10 @@ export class Retrowave extends Scene {
 	playerLocation: Point3 = [0, 0, 0];
 	terrain: Terrain<WireVertex>;
 	chunks: Record<ChunkId, Chunk<WireVertex>> = {};
+	roadLength = 256;
+	roadEntity?: SceneEntity;
+	unusedHeightmaps: Array<GPUTexture> = [];
+	renderMode: RenderMode = RenderMode.Shaded;
 
 	constructor(ctx: Context) {
 		super(ctx);
@@ -66,7 +75,9 @@ export class Retrowave extends Scene {
 		this.reflectOutput = createTexture(ctx, 'rgba8unorm');
 		this.entities = [];
 		this.camera.position[2] += 0.0;
-		this.camera.position[1] += 4.0;
+		this.camera.position[1] += 10.0;
+
+		let seed = 0;
 
 		const barycentric: Array<Point3> = [
 			[1, 0, 0],
@@ -75,13 +86,17 @@ export class Retrowave extends Scene {
 		];
 
 		const vertexBuilder = (wireColor: Color, faceColor: Color) =>
-			(position: Point3, i: number): WireVertex => ({
-				position,
-				barycentric: barycentric[i % 3],
-				normal: [0.0, 1.0, 0.0],
-				wireColor,
-				faceColor,
-			} as WireVertex);
+			(position: Point3, i: number): WireVertex => {
+				if (i % 3 === 0) seed = Math.random();
+				return {
+					position,
+					barycentric: barycentric[i % 3],
+					normal: [0.0, 1.0, 0.0],
+					seed,
+					wireColor,
+					faceColor,
+				} as WireVertex;
+			};
 
 		this.terrain = new Terrain(ctx, 32, vertexBuilder([0.5, 0.8, 0.1, 1.0], [0.2, 0.05, 0.3, 1.0]));
 
@@ -99,73 +114,106 @@ export class Retrowave extends Scene {
 		}));
 		const icosMesh = new Mesh(ctx, icosVertices);
 		for (let i = 0; i < 100; i++) {
-			const dist = 200.0;
+			const dist = 100.0;
 
 			this.entities.push(new SceneEntity({
 				mesh: icosMesh,
 				showInMirror: true,
 				material: Material.Wire,
 				rotation: normalize([rn(), rn(), rn()] as Vector3),
-				transform: translation((rn() - 0.5) * dist, (rn() + 0.77) * 10.0, (rn() - 0.5) * dist),
+				transform: translation((rn() - 0.5) * dist, (rn() + 0.3) * 10.0, (rn() - 0.5) * dist),
 				seed: Math.random(),
 			}));
 		}
 
-		const roadVertices = buildQuad<WireVertex>((position, i) => ({
-			position: [position[0] * 2.99, position[2], position[1] * 256.0],
-			barycentric: barycentric[i % 3],
-			normal: [0.0, 1.0, 0.0],
-			wireColor: [1.0, 1.0, 0.0, 0.0],
-			faceColor: [1.0, 1.0, 0.0, 0.0],
-		}));
+		const roadVertices = buildQuad<WireVertex>((position, i) => {
+			// Unique seed per triangle
+			if (i % 3 === 0) seed = Math.random();
+			return {
+				position: [position[0] * 2.0, position[2], position[1] * this.roadLength],
+				barycentric: barycentric[i % 3],
+				normal: [0.0, 1.0, 0.0],
+				wireColor: [1.0, 1.0, 0.0, 0.0],
+				faceColor: [1.0, 1.0, 0.0, 0.0],
+				seed,
+			};
+		});
 		const roadMesh = new Mesh(ctx, roadVertices);
-		this.entities.push(new SceneEntity({
+		this.roadEntity = new SceneEntity({
 			mesh: roadMesh,
 			material: Material.Road,
 			showInMirror: false,
 			rotation: [0, 0, 0],
-			transform: translation(0, 0.1, -10),
-		}));
+			transform: translation(0, 0.1, -this.roadLength),
+		});
+		this.entities.push(this.roadEntity);
+		this.terrainRenderPipeline = new TerrainPipeline(ctx);
+	}
 
-		const r = 12;
-		for (let y = -r; y < 0; y++) {
-			for (let x = -r; x < r; x++) {
-				this.addChunk(x, y);
+	updateChunks() {
+		let ox = Math.floor(this.camera.position[0] / 64.0 + 0.5);
+		let oy = Math.floor(this.camera.position[2] / 64.0 + 0.5);
+		const r = 8;
+		const chunksAdded = [];
+		for (let y = -r + 1; y < r; y++) {
+			for (let x = -r + 1; x < r; x++) {
+				const cx = x + ox;
+				const cy = y + oy;
+				chunksAdded.push(`${cx},${cy}`);
+				this.addChunk(cx, cy);
 			}
 		}
 
-		this.terrainRenderPipeline = new TerrainPipeline(ctx);
+		for (const id in this.chunks) {
+			if (chunksAdded.indexOf(id) === -1) {
+				this.removeChunk(...(id.split(',').map(parseFloat) as Point2));
+			}
+		}
 	}
 
 	addChunk(x: number, y: number) {
 		const id: ChunkId = [x, y].join(',');
 		if (this.chunks[id]) return;
 
-		const chunk = this.terrain.generateChunk(x, y);
+		const chunk = this.terrain.generateChunk(x, y, this.unusedHeightmaps.pop());
 		this.chunks[id] = chunk;
 
 		this.entities.push(new SceneEntity({
 			mesh: chunk.mesh,
 			chunk,
 			material: Material.Terrain,
-			showInMirror: false,
+			showInMirror: true,
 			rotation: [0, 0, 0],
 			transform: multiply(
-				scaling(32.0),
-				translation(chunk.offset[0], 0.0, chunk.offset[1]),
+				scaling(64.0),
+				translation(chunk.offset[0] - 0.5, 0.0, chunk.offset[1] - 0.5),
 			),
 		}));
 	}
 
 	removeChunk(x: number, y: number) {
 		const id: ChunkId = [x, y].join(',');
-		if (this.chunks[id]) {
-			// FIXME remove entity
-			delete this.chunks[id];
+		if (!this.chunks[id]) return;
+
+		function isChunk(entity: SceneEntity): boolean {
+			if (!entity.chunk) return false;
+			if (entity.chunk.offset[0] === x && entity.chunk.offset[1] === y) return true;
+			return false;
 		}
+
+		const chunk = this.chunks[id];
+		delete this.chunks[id];
+		this.unusedHeightmaps.push(chunk.heightmap);
+		this.entities = this.entities.filter(e => !isChunk(e));
 	}
 
 	updateEntities(dt: number) {
+		//this.camera.position[2] = performance.now() / -128.0;
+		this.updateChunks();
+		if (this.roadEntity) {
+			this.roadEntity.transform = translation(0.0, 0.1, this.camera.position[2] - this.roadLength);
+		}
+
 		for (const entity of this.entities) {
 			const rot = scale(entity.rotation, dt);
 			entity.transform = multiply(entity.transform, rotation(...rot));
@@ -213,21 +261,21 @@ export class Retrowave extends Scene {
 		const id = i + (mirror ? 0 : this.entities.length);
 
 		switch (entity.material) {
-		case Material.Wire: {
-			this.wirePipeline.draw(encoder, id, buffer, entity, camera);
-			break;
-		}
+			case Material.Wire: {
+				this.wirePipeline.draw(encoder, id, buffer, entity, camera);
+				break;
+			}
 
-		case Material.Road: {
-			this.roadPipeline.draw(encoder, id, buffer, entity, camera);
-			break;
-		}
+			case Material.Road: {
+				this.roadPipeline.draw(encoder, id, buffer, entity, camera);
+				break;
+			}
 
-		case Material.Terrain: {
-			if (!entity.chunk) throw new Error('Entity is missing Chunk data');
-			this.terrainRenderPipeline.draw(encoder, id, buffer, entity as TerrainEntity, camera);
-			break;
-		}
+			case Material.Terrain: {
+				if (!entity.chunk) throw new Error('Entity is missing Chunk data');
+				this.terrainRenderPipeline.draw(encoder, id, buffer, entity as TerrainEntity, camera);
+				break;
+			}
 		}
 	}
 
@@ -244,7 +292,8 @@ export class Retrowave extends Scene {
 			this.drawEntity(i, encoder, this.reflectBuffer, camera, true);
 		}
 
-		//this.bloomPipeline.run(encoder, this.buffer, 2, 3, 1.4);
+		// FIXME reflect buffer seems to alter the main buffer
+		this.bloomPipeline.run(encoder, this.buffer, 3, 4, 1.1);
 		//this.bloomPipeline.run(encoder, this.reflectBuffer, 2, 3, 1.4);
 
 		// Compose reflection onto a texture
@@ -272,10 +321,11 @@ export class Retrowave extends Scene {
 
 	async draw(camera?: Camera) {
 		return new Promise(resolve =>
-			requestAnimationFrame(() => {
-				this.updateEntities(1 / 60);
-				this.drawFrame(camera);
-				resolve(void 0);
-			}));
+			requestAnimationFrame(() =>
+				resolve(
+					this.drawFrame(camera)
+				)
+			)
+		);
 	}
 }

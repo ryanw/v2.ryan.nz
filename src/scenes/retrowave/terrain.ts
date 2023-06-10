@@ -46,10 +46,10 @@ export class Terrain<V extends Vertex<V>> {
 		this.chunkMesh = new Mesh(ctx, vertices);
 	}
 
-	generateChunk(x: number, y: number): Chunk<V> {
+	generateChunk(x: number, y: number, recycleTexture?: GPUTexture): Chunk<V> {
 		const offset: Vector2 = [x, y];
-		const res = 128;
-		const heightmap = createTexture(this.ctx, 'r32float', [res, res], `Heightmap [${x} x ${y}] Texture`);
+		const res = 256;
+		const heightmap = recycleTexture || createTexture(this.ctx, 'r32float', [res, res], `Heightmap [${x} x ${y}] Texture`);
 		this.ctx.encode(encoder => this.terrainGenPipeline.run(encoder, [x * (res - 1), y * (res - 1)], heightmap));
 
 		return {

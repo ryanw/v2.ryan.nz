@@ -1,3 +1,5 @@
+@include 'engine/noise.wgsl';
+
 struct Camera {
 	view: mat4x4<f32>,
 	projection: mat4x4<f32>,
@@ -18,11 +20,11 @@ struct WireVertex {
 	@location(2) normal: vec3<f32>,
 	@location(3) wireColor: vec4<f32>,
 	@location(4) faceColor: vec4<f32>,
+	@location(5) seed: f32,
 }
 
 struct VertexOut {
 	@builtin(position) position: vec4<f32>,
-	@location(0) terrainPosition: vec2<f32>,
 	@location(1) worldPosition: vec3<f32>,
 	@location(2) barycentric: vec3<f32>,
 	@location(3) normal: vec3<f32>,
@@ -85,15 +87,34 @@ fn vs_main(in: WireVertex) -> VertexOut {
 	var p = in.position.xz;
 
 	let displacement = getDisplacement(p, true);
-	var displaceAmount = 1.0 / 24.0;
+	var displaceAmount = 1.0 / 48.0;
 	if (displaceAmount > 0.0) {
+		// Flatten around road
 		displaceAmount *= smoothstep(0.2, 2.0, abs(worldPosition.x / worldPosition.w) / 8.0);
 	}
 
-	out.terrainPosition = p;
+	let vp = mv * vec4(in.position, 1.0);
+	let viewPosition = vp.xyz / vp.w;
+	let dist = length(viewPosition.xz);
 
+	var offset = vec3(0.0, displacement * displaceAmount, 0.0);
+	let dir = vec3(
+		rnd3(vec3(in.seed, 0.0, 0.0)) - 0.5,
+		rnd3(vec3(0.0, in.seed, 0.0)) - 0.5,
+		rnd3(vec3(0.0, 0.0, in.seed)) - 0.5
+	);
 
-	let position = mvp * vec4(in.position + vec3(0.0, displacement * displaceAmount, 0.0), 1.0);
+	//offset.y += abs(dir.y) * (in.seed / 1.0) * max(0.0, ((dir.x * 100.0) - (u.t * 4.0)) * 1.0);
+
+	let n0 = rnd3(vec3(in.seed)) * 1.0 + sin(u.t * 2.0 + (fract(in.seed * 10.0) * 13.0)) / 20.0;
+	let n1 = rnd3(vec3(in.seed * -10.0)) - 0.5;
+	let n2 = rnd3(vec3(in.seed * 10.0)) - 0.5;
+	let am = n1 * 1000.0;
+	var f = smoothstep(0.0, 1.0, dist);
+	f = clamp(pow(f/80.0, 4.0), 0.0, 1.0);
+	offset.y -= n0 * f;
+
+	let position = mvp * vec4(in.position + offset, 1.0);
 	let normal = normalize((entity.model * vec4(in.normal, 0.0)).xyz);
 	out.position = position;
 	out.worldPosition = worldPosition.xyz / worldPosition.w;
@@ -121,11 +142,10 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 
 	let g = edgeDistance(in.barycentric, 1.2, 0.2);
 
-	let displacement = getDisplacement(in.terrainPosition, true);
 	let wire = in.wireColor;
 	let face = in.faceColor;
-	//let face = vec4(vec3(displacement), 1.0);
-	//let face = vec4(vec3(in.terrainPosition, 0.0), 1.0);
+	//let face = vec4(vec3(length(in.viewPosition / 50.0)), 1.0);
+
 	let n = 0.01;
 	out.color = mix(wire, face, g);
 	out.bloom = mix(vec4(0.0), wire, (1.0 - g) / 5.0);
