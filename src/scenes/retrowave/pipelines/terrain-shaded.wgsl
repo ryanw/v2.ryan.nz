@@ -19,7 +19,6 @@ struct WireVertex {
 	@location(0) position: vec3<f32>,
 	@location(1) barycentric: vec3<f32>,
 	@location(2) normal: vec3<f32>,
-	@location(3) wireColor: vec4<f32>,
 	@location(4) faceColor: vec4<f32>,
 	@location(5) seed: f32,
 }
@@ -29,7 +28,6 @@ struct VertexOut {
 	@location(1) worldPosition: vec3<f32>,
 	@location(2) barycentric: vec3<f32>,
 	@location(3) normal: vec3<f32>,
-	@location(4) wireColor: vec4<f32>,
 	@location(5) faceColor: vec4<f32>,
 	@location(6) depth: f32,
 }
@@ -56,7 +54,19 @@ fn modi(p: vec2<i32>, size: vec2<i32>) -> vec2<i32> {
 	return ((p % size) + size) % size;
 }
 
-fn getDisplacement(p: vec2<f32>, multisample: bool) -> f32 {
+fn getDisplacement(p: vec2<f32>, offset: vec2<i32>) -> f32 {
+	let size = vec2<i32>(textureDimensions(heightmap));
+	let texSize = vec2<f32>(size) - vec2(1.0);
+
+	let uv = p * texSize;
+
+	let uvFloor = floor(uv);
+
+	let t0 = textureLoad(heightmap, modi(vec2<i32>(uvFloor) + offset, size), 0).r;
+	return t0;
+}
+
+fn old_getDisplacement(p: vec2<f32>, multisample: bool) -> f32 {
 	let size = vec2<i32>(textureDimensions(heightmap));
 	let texSize = vec2<f32>(size) - vec2(1.0);
 
@@ -87,6 +97,7 @@ fn vs_main(in: WireVertex) -> VertexOut {
 	var out: VertexOut;
 	let mv = u.camera.view * entity.model;
 	let mvp = u.camera.projection * mv;
+	var normal = vec3(0.0, 1.0, 0.0);
 
 	let worldPosition = entity.model * vec4(in.position, 1.0);
 	let wp = worldPosition.xyz / worldPosition.w;
@@ -95,18 +106,29 @@ fn vs_main(in: WireVertex) -> VertexOut {
 
 	let chunkScale = 64.0;
 	let cs = chunkScale / 2.0;
-	let displacement = getDisplacement(p + floor(entity.offset * cs) / cs, false);
+	let dp = p + floor(entity.offset * cs) / cs;
+
+	let height = getDisplacement(dp, vec2(0));
+	let hl = getDisplacement(dp, vec2(-1, 0));
+	let hr = getDisplacement(dp, vec2(1, 0));
+	let ht = getDisplacement(dp, vec2(0, 1));
+	let hb = getDisplacement(dp, vec2(0, -1));
+
+	let sx = (hr - hl) / 2.0;
+	let sy = (ht - hb) / 2.0;
+	normal = normalize(vec3(-sx, 1.0, sy));
+
 	var displaceAmount = 1.0 / 48.0;
 	if (displaceAmount > 0.0) {
 		// Flatten around road
-		displaceAmount *= smoothstep(0.2, 2.0, abs(wp.x) / 8.0);
+		displaceAmount *= smoothstep(0.4, 2.0, abs(wp.x) / 8.0);
 	}
 
 	let vp = mv * vec4(in.position, 1.0);
 	let viewPosition = vp.xyz / vp.w;
 	let dist = length(viewPosition.xz);
 
-	var offset = vec3(0.0, displacement * displaceAmount, 0.0);
+	var offset = vec3(0.0, height * displaceAmount, 0.0);
 	let dir = vec3(
 		rnd3(vec3(in.seed, 0.0, 0.0)) - 0.5,
 		rnd3(vec3(0.0, in.seed, 0.0)) - 0.5,
@@ -124,12 +146,11 @@ fn vs_main(in: WireVertex) -> VertexOut {
 	offset.y -= n0 * f;
 
 	let position = mvp * vec4(in.position + offset, 1.0);
-	let normal = normalize((entity.model * vec4(in.normal, 0.0)).xyz);
+
 	out.position = position;
-	out.worldPosition = worldPosition.xyz / worldPosition.w;
+	out.worldPosition = wp;
 	out.normal = normal;
 	out.barycentric = in.barycentric;
-	out.wireColor = mix(vec4(0.1, 0.9, 0.4, 1.0), vec4(0.5, 0.7, 0.1, 1.0), displacement);
 	out.faceColor = in.faceColor;
 	let relPos = u.camera.view * worldPosition;
 	out.depth = abs(length(relPos.xyz / relPos.w)) / 256.0;
@@ -149,15 +170,16 @@ fn fs_main(in: VertexOut) -> FragmentOut {
 	color = vec4(0.0);
 
 
-	let g = edgeDistance(in.barycentric, 1.2, 0.2);
+	let dirt0 = vec4(0.6, 0.5, 0.1, 1.0);
+	let dirt1 = vec4(0.4, 0.2, 0.05, 1.0);
+	var face = mix(vec4(0.0, 0.0, 0.0, 1.0), in.faceColor, shade);
 
-	let wire = in.wireColor;
-	let face = in.faceColor;
-	//let face = vec4(vec3(length(in.viewPosition / 50.0)), 1.0);
+	face = mix(face, dirt0, fractalNoise(in.worldPosition, 256.0, 2) / 4.0);
+	face = mix(face, dirt1, fractalNoise(in.worldPosition + vec3(100.0), 512.0, 3) / 2.0);
+
 
 	let n = 0.01;
-	out.color = mix(wire, face, g);
-	out.bloom = mix(vec4(0.0), wire, (1.0 - g) / 5.0);
+	out.color = face;
 	out.mirror = vec4(0.0);
 
 	return out;

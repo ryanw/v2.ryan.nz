@@ -23,7 +23,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 	//var h = rnd4(vec4(vec2<f32>(samplePos), 0.0, 0.0));
 	let p = vec3(vec2<f32>(samplePos), 0.0);
-	var h = fractalNoise(p, 1.0, 2);
+	var h = fractalNoise(p, 1.0, 3);
 
-	textureStore(heightmap, coord, vec4(h * 4.0));
+	textureStore(heightmap, coord, vec4(h));
 }

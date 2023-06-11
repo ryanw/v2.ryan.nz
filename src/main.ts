@@ -65,8 +65,6 @@ async function main() {
 		//attachUi(scene);
 	}
 
-	setInterval(() => scene.updateEntities(1 / 60), 1000 / 60);
-
 
 	let mouse = [0, 0];
 	let now = performance.now();

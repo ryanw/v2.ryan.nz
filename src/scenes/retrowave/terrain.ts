@@ -1,6 +1,7 @@
 import { Context, Mesh, Vertex, createTexture } from 'engine';
 import { Point2, Point3, Vector2 } from 'engine/math';
 import { TerrainGenPipeline } from './pipelines/terrain_gen';
+import { calculateNormals } from 'engine/models';
 
 export interface Chunk<V extends Vertex<V>> {
 	mesh: Mesh<V>;
@@ -48,7 +49,7 @@ export class Terrain<V extends Vertex<V>> {
 
 	generateChunk(x: number, y: number, recycleTexture?: GPUTexture): Chunk<V> {
 		const offset: Vector2 = [x, y];
-		const res = 256;
+		const res = 1024;
 		const heightmap = recycleTexture || createTexture(this.ctx, 'r32float', [res, res], `Heightmap [${x} x ${y}] Texture`);
 		this.ctx.encode(encoder => this.terrainGenPipeline.run(encoder, [x * (res - 1), y * (res - 1)], heightmap));
 

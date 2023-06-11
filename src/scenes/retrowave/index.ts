@@ -57,6 +57,7 @@ export class Retrowave extends Scene {
 	playerLocation: Point3 = [0, 0, 0];
 	terrain: Terrain<WireVertex>;
 	chunks: Record<ChunkId, Chunk<WireVertex>> = {};
+	chunkEntities: Record<ChunkId, SceneEntity> = {};
 	roadLength = 256;
 	roadEntity?: SceneEntity;
 	unusedHeightmaps: Array<GPUTexture> = [];
@@ -75,7 +76,7 @@ export class Retrowave extends Scene {
 		this.reflectOutput = createTexture(ctx, 'rgba8unorm');
 		this.entities = [];
 		this.camera.position[2] += 0.0;
-		this.camera.position[1] += 10.0;
+		this.camera.position[1] += 2.0;
 
 		let seed = 0;
 
@@ -98,7 +99,7 @@ export class Retrowave extends Scene {
 				} as WireVertex;
 			};
 
-		this.terrain = new Terrain(ctx, 32, vertexBuilder([0.5, 0.8, 0.1, 1.0], [0.2, 0.05, 0.3, 1.0]));
+		this.terrain = new Terrain(ctx, 128, vertexBuilder([0.5, 0.8, 0.1, 1.0], [0.3, 0.5, 0.2, 1.0]));
 
 		const baseVertices = buildIcosahedron(vertexBuilder([0.8, 1.0, 0.0, 1.0], [0.3, 0.1, 0.5, 1.0]));
 		calculateNormals(baseVertices);
@@ -148,12 +149,14 @@ export class Retrowave extends Scene {
 		});
 		this.entities.push(this.roadEntity);
 		this.terrainRenderPipeline = new TerrainPipeline(ctx);
+
+		this.addChunk(0, 0);
 	}
 
 	updateChunks() {
 		let ox = Math.floor(this.camera.position[0] / 64.0 + 0.5);
 		let oy = Math.floor(this.camera.position[2] / 64.0 + 0.5);
-		const r = 8;
+		const r = 1;
 		const chunksAdded = [];
 		for (let y = -r + 1; y < r; y++) {
 			for (let x = -r + 1; x < r; x++) {
@@ -177,8 +180,7 @@ export class Retrowave extends Scene {
 
 		const chunk = this.terrain.generateChunk(x, y, this.unusedHeightmaps.pop());
 		this.chunks[id] = chunk;
-
-		this.entities.push(new SceneEntity({
+		this.chunkEntities[id] = new SceneEntity({
 			mesh: chunk.mesh,
 			chunk,
 			material: Material.Terrain,
@@ -188,7 +190,9 @@ export class Retrowave extends Scene {
 				scaling(64.0),
 				translation(chunk.offset[0] - 0.5, 0.0, chunk.offset[1] - 0.5),
 			),
-		}));
+		});
+
+		this.entities.push(this.chunkEntities[id]);
 	}
 
 	removeChunk(x: number, y: number) {
@@ -202,16 +206,33 @@ export class Retrowave extends Scene {
 		}
 
 		const chunk = this.chunks[id];
+		const entity = this.chunkEntities[id];
 		delete this.chunks[id];
+		delete this.chunkEntities[id];
 		this.unusedHeightmaps.push(chunk.heightmap);
-		this.entities = this.entities.filter(e => !isChunk(e));
+		this.entities = this.entities.filter(e => e !== entity);
 	}
 
 	updateEntities(dt: number) {
-		//this.camera.position[2] = performance.now() / -128.0;
-		this.updateChunks();
 		if (this.roadEntity) {
 			this.roadEntity.transform = translation(0.0, 0.1, this.camera.position[2] - this.roadLength);
+		}
+		for (const id in this.chunkEntities) {
+			const entity = this.chunkEntities[id];
+			const chunk = this.chunks[id];
+			// FIXME DRY with #1
+			const chunkScale = 64.0;
+			const terrainScale = 256.0;
+			chunk.offset[0] = (this.camera.position[0] / terrainScale);
+			chunk.offset[1] = (this.camera.position[2] / terrainScale);
+			entity.transform = multiply(
+				scaling(terrainScale),
+				translation(
+					Math.floor(chunk.offset[0] * chunkScale / 2.0) / (chunkScale / 2.0) - 0.5,
+					0.0,
+					Math.floor(chunk.offset[1] * chunkScale / 2.0) / (chunkScale / 2.0) - 0.9,
+				),
+			);
 		}
 
 		for (const entity of this.entities) {
@@ -321,11 +342,10 @@ export class Retrowave extends Scene {
 
 	async draw(camera?: Camera) {
 		return new Promise(resolve =>
-			requestAnimationFrame(() =>
-				resolve(
-					this.drawFrame(camera)
-				)
-			)
+			requestAnimationFrame(() => {
+				this.updateEntities(1 / 60);
+				resolve(this.drawFrame(camera));
+			})
 		);
 	}
 }

@@ -1,9 +1,9 @@
 import { GBuffer } from '../gbuffer';
 import { Camera, Context, Pipeline, createTexture } from 'engine';
-import SHADER_SOURCE from './terrain.wgsl';
 import { Entity, WireVertex } from './wireframe';
-import { entry } from 'webpack.config';
 import { Chunk } from '../terrain';
+//import SHADER_SOURCE from './terrain.wgsl';
+import SHADER_SOURCE from './terrain-shaded.wgsl';
 
 export type TerrainEntity = Entity & { chunk: Chunk<WireVertex>};
 
@@ -143,7 +143,15 @@ export class TerrainPipeline extends Pipeline {
 				}]
 			});
 		}
-		device.queue.writeBuffer(this.entityBuffers[id], 0, new Float32Array(transform));
+		// FIXME DRY with #1
+		const chunkScale = 64.0;
+		const terrainScale = 256.0;
+		const ratio = terrainScale / chunkScale;
+		const offset = [
+			Math.floor(camera.position[0]) / chunkScale / ratio,
+			Math.floor(camera.position[2]) / chunkScale / ratio,
+		];
+		device.queue.writeBuffer(this.entityBuffers[id], 0, new Float32Array([...transform, ...offset]));
 
 		const passDescriptor: GPURenderPassDescriptor = {
 			colorAttachments: [

@@ -46,7 +46,9 @@ export class WireframePipeline extends Pipeline {
 			layout: 'auto',
 			vertex: { module, entryPoint: 'vs_main', buffers: VERTEX_BUFFER_LAYOUT },
 			fragment: {
-				module, entryPoint: 'fs_main', targets: [
+				module,
+				entryPoint: 'fs_main',
+				targets: [
 					// Albedo
 					{ format: 'rgba8unorm' },
 					// Bloom
