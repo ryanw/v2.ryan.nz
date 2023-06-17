@@ -1,6 +1,7 @@
 import { InputHandler, Context } from 'engine';
 import { Vector2, Vector3 } from 'engine/math';
-import { Retrowave as DemoScene } from './scenes/retrowave';
+//import { Retrowave as DemoScene } from './scenes/retrowave';
+import { LineScene as DemoScene } from './scenes/lines';
 //import { ZXScene as DemoScene } from './scenes/zx';
 
 /**

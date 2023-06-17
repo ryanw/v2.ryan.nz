@@ -7,5 +7,11 @@ export abstract class Scene {
 		this.ctx = ctx;
 	}
 
-	abstract draw(): Promise<void | unknown>;
+	async draw() {
+		return new Promise(resolve =>
+			requestAnimationFrame(async () =>
+				resolve(await this.drawFrame())));
+	}
+
+	abstract drawFrame(): Promise<void | unknown>;
 }

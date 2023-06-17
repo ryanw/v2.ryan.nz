@@ -72,10 +72,10 @@ export class Context {
 		this.canvas.setAttribute('height', h.toString());
 	}
 
-	encode(callback: (encoder: GPUCommandEncoder) => void) {
+	async encode(callback: (encoder: GPUCommandEncoder) => Promise<void>) {
 		const { device } = this;
 		const encoder = device.createCommandEncoder();
-		callback(encoder);
+		await callback(encoder);
 		device.queue.submit([encoder.finish()]);
 	}
 

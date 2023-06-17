@@ -36,7 +36,45 @@ export const ICOSAHEDRON_TRIS: Array<[number, number, number]> = [
 	[2, 4, 11],
 	[6, 2, 10],
 	[8, 6, 7],
-	[9, 8, 1]
+	[9, 8, 1],
+];
+
+export const ICOSAHEDRON_LINES: Array<[number, number]> = [
+	// Top
+	[0, 11],
+	[0, 5],
+	[0, 1],
+	[0, 7],
+	[0, 10],
+	[1, 5],
+	[5, 11],
+	[11, 10],
+	[10, 7],
+	[7, 1],
+
+	// Bottom
+	[3, 9],
+	[3, 4],
+	[3, 2],
+	[3, 6],
+	[3, 8],
+	[4, 9],
+	[2, 4],
+	[6, 2],
+	[8, 6],
+	[9, 8],
+
+	// Mid
+	[1, 9],
+	[5, 9],
+	[5, 4],
+	[11, 4],
+	[11, 2],
+	[10, 2],
+	[10, 6],
+	[7, 6],
+	[7, 8],
+	[1, 8],
 ];
 
 export function buildIcosahedron<T>(callback: (position: Point3, index: number) => T): Array<T> {

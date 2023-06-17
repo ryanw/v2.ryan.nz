@@ -42,16 +42,17 @@ footer {
 .instructions {
 	position: absolute;
 	z-index: 10;
-	width: 164px;
-	bottom: 32px;
+	bottom: 16px;
 	text-align: center;
-	width: 400px;
+	width: 512px;
 	left: 50%;
 	margin: 32px;
-	margin-left: -200px;
+	margin-left: -256px;
 	line-height: 1.5em;
 	background: rgba(50, 50, 50, 0.85);
 	border-radius: 8px;
+	font-size: 10pt;
+	text-shadow: 1px 2px 1px rgba(0, 0, 0, 0.5);
 }
 
 footer {
