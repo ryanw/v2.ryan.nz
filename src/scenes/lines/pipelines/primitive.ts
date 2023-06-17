@@ -176,7 +176,7 @@ function linesToBuffer(lines: Array<Line>): Float32Array {
 		*/
 	];
 
-	const thickness = 16;
+	const thickness = 24;
 	for (let i = 0; i < lines.length; i++) {
 		const [start, end] = lines[i];
 		const offset = i * stride;

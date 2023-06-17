@@ -40,7 +40,8 @@ struct VertexOut {
 	@location(2) color: vec4<f32>,
 	@location(3) size: vec2<f32>,
 	@location(4) @interpolate(flat) instanceId: u32,
-	@location(5) t: f32,
+	@location(5) depth: f32,
+	@location(6) t: f32,
 }
 
 fn rot2d(angle: f32) -> mat2x2<f32> {
@@ -113,9 +114,9 @@ fn vs_main(in: LineVertex) -> VertexOut {
 	p *= scale2d(aspect.y, 1.0);
 
 
-	let hl = camera.view * vec4(mix(start, end, vertexOffset.x * 0.5 + 0.5), 1.0);
+	let hl = camera.view * camera.model * vec4(mix(start, end, vertexOffset.x * 0.5 + 0.5), 1.0);
 	let l = (hl / hl.w).xyz;
-	let depth = abs(length(l)) / 10000.0;
+	let depth = abs(length(l)) / 1000.0;
 
 
 	out.position = vec4(p, depth, 1.0);
@@ -123,6 +124,7 @@ fn vs_main(in: LineVertex) -> VertexOut {
 	out.size = line.size;
 	out.style = line.style;
 	out.instanceId = in.instanceId;
+	out.depth = depth;
 	out.color = line.color;
 
 	return out;
@@ -154,8 +156,16 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	let aa = 3.0;
 	let t = 1.0 / in.size.y;
 	alpha = smoothstep(0.0, t * aa, alpha);
+
+	var color = in.color;
+	//color = mix(color, vec4(color.rgb * 0.01, color.a), smoothstep(0.0, 1.0 / 150.0, in.depth));
 	//return vec4(in.uv * 0.5 + 0.5, 0.0, 1.0);
-	return vec4(in.color.rgb * in.color.a, in.color.a * alpha);
+	//return vec4(1.0, 0.0, 1.0, alpha);
+	if alpha == 0.0 {
+		// Don't write to depth
+		discard;
+	}
+	return vec4(color.rgb, color.a * alpha);
 }
 
 fn lerp(a: f32, b: f32, t: f32) -> f32 {
