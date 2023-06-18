@@ -4,13 +4,14 @@ export const DEPTH_FORMAT: GPUTextureFormat = 'depth16unorm';
 
 export class GBuffer {
 	ctx: Context;
-	size: [number, number];
-	albedo: GPUTexture;
+	size: [number, number] = [0, 0];
+	albedo!: GPUTexture;
+	depth!: GPUTexture;
 
 	constructor(ctx: Context) {
 		this.ctx = ctx;
-		this.size = [1, 1];
-		this.albedo = createTexture(ctx, 'rgba8unorm');
+		const [width, height] = ctx.size;
+		this.resize(width, height);
 	}
 
 	resize(width: number, height: number) {
@@ -19,5 +20,7 @@ export class GBuffer {
 		}
 		this.size = [width, height];
 		this.albedo = createTexture(this.ctx, 'rgba8unorm', this.size, 'Line GBuffer Albedo Texture');
+		this.depth = createTexture(this.ctx, 'depth32float', this.size, 'Line GBuffer Depth Texture');
+
 	}
 }

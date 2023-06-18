@@ -1,11 +1,12 @@
-const MAX_LINES: u32 = 500000;
-
 struct Camera {
-	model: mat4x4<f32>,
 	view: mat4x4<f32>,
 	projection: mat4x4<f32>,
 	resolution: vec2<f32>,
 	//time: f32,
+}
+
+struct Entity {
+	model: mat4x4<f32>,
 }
 
 struct Line {
@@ -19,8 +20,11 @@ struct Line {
 @group(0) @binding(0)
 var<uniform> camera: Camera;
 
+@group(0) @binding(1)
+var<uniform> entity: Entity;
+
 @group(1) @binding(0)
-var<storage, read> lines: array<Line, MAX_LINES>;
+var<storage, read> lines: array<Line>;
 
 const offsets = array<vec2<f32>, 4>(
 	vec2(1.0, 1.0),
@@ -73,12 +77,12 @@ fn vs_main(in: LineVertex) -> VertexOut {
 	let line = lines[in.instanceId];
 	let vertexOffset = offsets[in.vertexId];
 
-	let mvp = camera.projection * camera.view * camera.model;
+	let mvp = camera.projection * camera.view * entity.model;
 	let vp = camera.projection * camera.view;
 	let res = camera.resolution;
 	let aspect = vec2(res.x / res.y, res.y / res.x);
-	let start = line.start;
-	let end = line.end;
+	let start = line.start / 1.9;
+	let end = line.end / 1.9;
 
 
 
@@ -94,8 +98,10 @@ fn vs_main(in: LineVertex) -> VertexOut {
 
 	// Transform from 3D world space to 2D screen space
 	let scale = scaling(aspect.x, 1.0, 1.0, 1.0);
-	let p0 = (scale * ps).xy / ps.w;
-	let p1 = (scale * pe).xy / pe.w;
+	let pss = (scale * ps);
+	let pes = (scale * pe);
+	let p0 = pss.xy / pss.w;
+	let p1 = pes.xy / pes.w;
 	let d = dot(vec2(0.0, 1.0), normalize(p1 - p0));
 
 
@@ -114,9 +120,11 @@ fn vs_main(in: LineVertex) -> VertexOut {
 	p *= scale2d(aspect.y, 1.0);
 
 
-	let hl = camera.view * camera.model * vec4(mix(start, end, vertexOffset.x * 0.5 + 0.5), 1.0);
+	let hl = camera.view * entity.model * vec4(mix(start, end, vertexOffset.x * 0.5 + 0.5), 1.0);
 	let l = (hl / hl.w).xyz;
-	let depth = abs(length(l)) / 1000.0;
+	//let depth = abs(length(l)) / 1000.0;
+
+	let depth = ((pes.z / pes.w) + (pss.z / pss.w)) / 2.0;
 
 
 	out.position = vec4(p, depth, 1.0);
@@ -153,14 +161,13 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 		alpha = 1.0 - abs(in.uv.y);
 	}
 
-	let aa = 3.0;
+	let aa = 0.0;
 	let t = 1.0 / in.size.y;
 	alpha = smoothstep(0.0, t * aa, alpha);
 
 	var color = in.color;
-	//color = mix(color, vec4(color.rgb * 0.01, color.a), smoothstep(0.0, 1.0 / 150.0, in.depth));
+	//color = mix(color, vec4(color.rgb * 0.01, color.a), smoothstep(0.0, 1.0 / 100.0, in.depth));
 	//return vec4(in.uv * 0.5 + 0.5, 0.0, 1.0);
-	//return vec4(1.0, 0.0, 1.0, alpha);
 	if alpha == 0.0 {
 		// Don't write to depth
 		discard;

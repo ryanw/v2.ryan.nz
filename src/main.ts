@@ -27,7 +27,7 @@ async function main() {
 		const { clientWidth, clientHeight } = el.parentElement;
 		const dpr = window.devicePixelRatio;
 
-		const div = 1;
+		const div = 2;
 		const w = clientWidth / div | 0;
 		const h = clientHeight / div | 0;
 

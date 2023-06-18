@@ -23,8 +23,10 @@ export class ComposePipeline extends Pipeline {
 		});
 	}
 
-	compose(encoder: GPUCommandEncoder, view: GPUTextureView, buffer: GBuffer) {
+	compose(encoder: GPUCommandEncoder, texture: GPUTexture, buffer: GBuffer) {
 		const { device } = this.ctx;
+
+		const view = texture.createView();
 
 		const passDescriptor: GPURenderPassDescriptor = {
 			colorAttachments: [

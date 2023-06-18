@@ -1,34 +1,24 @@
-import { Camera, Color, Context, Line, LineMesh, Pipeline, createTexture } from 'engine';
+import { Camera, Color, Context, Line, LineMesh, Mesh, Pipeline, createTexture } from 'engine';
 import { Matrix4, Point2, Point3, Vector2 } from 'engine/math';
-import SHADER_SOURCE from './primitive.wgsl';
+import SHADER_SOURCE from './face.wgsl';
 import { GBuffer } from '../gbuffer';
 
-export enum LineStyle {
-	Solid = 0,
-}
-
-export interface LineInstance {
-	start: Point3,
-	end: Point3,
-	color: Color,
-	style: LineStyle,
-	size: Vector2,
-}
-
-export interface LineVertex {
+export interface Vertex {
 	position: Point3,
-	uv: Point2,
+	normal: Point3,
+	barycentric: Point3,
+	color: Color,
 }
 
 export interface Entity {
-	mesh: LineMesh,
+	mesh: Mesh<Vertex>,
 	transform: Matrix4,
 }
 
 
-export class PrimitivePipeline extends Pipeline {
+export class FacePipeline extends Pipeline {
 	private pipeline: GPURenderPipeline;
-	private transformBuffers: Map<LineMesh, GPUBuffer>;
+	private transformBuffers: Map<Mesh<Vertex>, GPUBuffer>;
 	private cameraBuffer: GPUBuffer;
 
 	constructor(ctx: Context, format?: GPUTextureFormat) {
@@ -36,14 +26,14 @@ export class PrimitivePipeline extends Pipeline {
 
 		const { device } = ctx;
 		const module = device.createShaderModule({
-			label: 'Line Primitive Shader Module',
+			label: 'FacePipeline Shader Module',
 			code: SHADER_SOURCE,
 		});
 
 		this.pipeline = device.createRenderPipeline({
-			label: 'Line Primitive Pipeline',
+			label: 'FacePipeline',
 			layout: 'auto',
-			vertex: { module, entryPoint: 'vs_main', buffers: [] },
+			vertex: { module, entryPoint: 'vs_main', buffers: VERTEX_BUFFER_LAYOUT },
 			fragment: {
 				module,
 				entryPoint: 'fs_main',
@@ -63,17 +53,16 @@ export class PrimitivePipeline extends Pipeline {
 					}
 				}]
 			},
-			primitive: { topology: 'triangle-strip' },
+			primitive: { topology: 'triangle-list' },
 			depthStencil: {
 				format: 'depth32float',
 				depthWriteEnabled: true,
-				// Lines should ge priority when z-fighting with faces
-				depthCompare: 'less-equal',
+				depthCompare: 'less',
 			},
 		});
 
 		this.cameraBuffer = device.createBuffer({
-			label: 'PrimitivePipeline Camera Buffer',
+			label: 'FacePipeline Camera Buffer',
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 			size: 256,
 			mappedAtCreation: false,
@@ -86,7 +75,7 @@ export class PrimitivePipeline extends Pipeline {
 		let buffer = this.transformBuffers.get(mesh);
 		if (!buffer) {
 			buffer = this.ctx.device.createBuffer({
-				label: 'PrimitivePipeline LineMesh Transform Buffer',
+				label: 'FacePipeline LineMesh Transform Buffer',
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 				size: 64, // mat4x4<f32>
 				mappedAtCreation: false,
@@ -134,8 +123,8 @@ export class PrimitivePipeline extends Pipeline {
 			const { mesh } = entity;
 			const transformBuffer = this.getTransformBuffer(entity);
 
-			const cameraBindGroup = device.createBindGroup({
-				label: 'PrimitivePipeline Camera Bind Group',
+			const uniformBindGroup = device.createBindGroup({
+				label: 'FacePipeline Uniform Bind Group',
 				layout: this.pipeline.getBindGroupLayout(0),
 				entries: [
 					{ binding: 0, resource: { buffer: this.cameraBuffer } },
@@ -143,17 +132,51 @@ export class PrimitivePipeline extends Pipeline {
 				],
 			});
 
-			const lineBindGroup = device.createBindGroup({
-				label: 'PrimitivePipeline LineMesh Bind Group',
-				layout: this.pipeline.getBindGroupLayout(1),
-				entries: [{ binding: 0, resource: { buffer: mesh.buffer } }],
-			});
 
+			pass.setBindGroup(0, uniformBindGroup);
 
-			pass.setBindGroup(0, cameraBindGroup);
-			pass.setBindGroup(1, lineBindGroup);
-			pass.draw(4, mesh.lineCount);
+			pass.setVertexBuffer(0, mesh.buffers.position);
+			pass.setVertexBuffer(1, mesh.buffers.normal);
+			pass.setVertexBuffer(2, mesh.buffers.barycentric);
+			pass.setVertexBuffer(3, mesh.buffers.color);
+
+			pass.draw(mesh.vertices.length);
 		}
 		pass.end();
 	}
 }
+
+const VERTEX_BUFFER_LAYOUT: Array<GPUVertexBufferLayout> = [
+	{
+		attributes: [{
+			shaderLocation: 0, // position
+			offset: 0,
+			format: 'float32x3',
+		}],
+		arrayStride: 12,
+	},
+	{
+		attributes: [{
+			shaderLocation: 1, // normal
+			offset: 0,
+			format: 'float32x3',
+		}],
+		arrayStride: 12,
+	},
+	{
+		attributes: [{
+			shaderLocation: 2, // barycentric
+			offset: 0,
+			format: 'float32x3',
+		}],
+		arrayStride: 12,
+	},
+	{
+		attributes: [{
+			shaderLocation: 3, // color
+			offset: 0,
+			format: 'float32x4',
+		}],
+		arrayStride: 16,
+	},
+];
