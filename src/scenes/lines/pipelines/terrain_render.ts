@@ -40,6 +40,7 @@ export class TerrainRenderPipeline extends Pipeline {
 				entryPoint: 'fs_main',
 				targets: [{
 					format: format || ctx.format,
+					/*
 					blend: {
 						color: {
 							operation: 'add',
@@ -52,6 +53,7 @@ export class TerrainRenderPipeline extends Pipeline {
 							dstFactor: 'one',
 						},
 					}
+					*/
 				}]
 			},
 			depthStencil: {

@@ -16,14 +16,27 @@ export { Color };
 
 
 export function createTexture({ device }: Context, format: GPUTextureFormat, size: GPUExtent3DStrict = [1, 1], label?: string): GPUTexture {
-	let usage = 
-		GPUTextureUsage.RENDER_ATTACHMENT |
+	let usage =
 		GPUTextureUsage.TEXTURE_BINDING |
 		GPUTextureUsage.COPY_DST;
 
-	if (format === 'rgba8unorm' || format === 'rgba8uint' || format === 'r32float') {
-		usage |= GPUTextureUsage.STORAGE_BINDING;
+	switch (format) {
+		case 'rgba8unorm':
+		case 'rgba8uint':
+		case 'r32float': {
+			usage |= GPUTextureUsage.STORAGE_BINDING;
+			break;
+		}
+
+		case 'rgba8unorm':
+		case 'rgba8snorm':
+		case 'rgba16float':
+		case 'rgba32float':
+		case 'depth32float':
+			usage |= GPUTextureUsage.RENDER_ATTACHMENT;
+			break;
 	}
+
 	return device.createTexture({
 		label,
 		format,

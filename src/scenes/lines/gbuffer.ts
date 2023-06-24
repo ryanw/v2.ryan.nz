@@ -19,7 +19,7 @@ export class GBuffer {
 			return;
 		}
 		this.size = [width, height];
-		this.albedo = createTexture(this.ctx, 'rgba8unorm', this.size, 'Line GBuffer Albedo Texture');
+		this.albedo = createTexture(this.ctx, 'rgba16float', this.size, 'Line GBuffer Albedo Texture');
 		this.depth = createTexture(this.ctx, 'depth32float', this.size, 'Line GBuffer Depth Texture');
 
 	}

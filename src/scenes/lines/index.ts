@@ -57,12 +57,14 @@ export class LineScene extends Scene {
 			(position: Point3): WireVertex => ({
 				position,
 				normal: normalize([0.5, 0.5, 0]),
-				wireColor: [1.0, 0.4, 1.0, 1.0],
-				faceColor: [0.04, 0.1, 0.15, 1.0],
+				//wireColor: [14.0, 1.4, 11.0, 1.0],
+				wireColor: [0.9, 0.3, 0.9, 1.0],
+				//wireColor: [Math.random(), Math.random(), Math.random(), 1.0],
+				faceColor: [0.1, 0.2, 0.4, 1.0],
 			})
 		);
 
-		const r = 8;
+		const r = 16;
 		for (let y = -r; y < r; y++) {
 			for (let x = -r; x < r; x++) {
 				this.addChunk(x, y);
@@ -72,8 +74,8 @@ export class LineScene extends Scene {
 		const icoVertices = buildIcosahedron((position: Point3): WireVertex => ({
 			position,
 			normal: normalize([0.5, 0.5, 0]),
-			wireColor: [1.0, 1.0, 0.4, 1.0],
-			faceColor: [0.04, 0.1, 0.15, 1.0],
+			wireColor: [1.0, 0.1, 0.1, 1.0],
+			faceColor: [0.3, 0.1, 0.1, 1.0],
 		}));
 		calculateNormals(icoVertices);
 		const icoMesh = new WireMesh(ctx, icoVertices);
@@ -90,9 +92,9 @@ export class LineScene extends Scene {
 		this.camera.position[2] += 0.0;
 		this.buffer = new GBuffer(ctx);
 		this.composePipeline = new ComposePipeline(ctx);
-		this.terrainRenderPipeline = new TerrainRenderPipeline(ctx, 'rgba8unorm');
-		this.shapeRenderPipeline = new ShapeRenderPipeline(ctx, 'rgba8unorm');
-		this.wireRenderPipeline = new WirePipeline(ctx, 'rgba8unorm');
+		this.terrainRenderPipeline = new TerrainRenderPipeline(ctx, 'rgba16float');
+		this.shapeRenderPipeline = new ShapeRenderPipeline(ctx, 'rgba16float');
+		this.wireRenderPipeline = new WirePipeline(ctx, 'rgba16float');
 	}
 
 	drawWires(encoder: GPUCommandEncoder, camera: Camera = this.camera) {
@@ -101,8 +103,6 @@ export class LineScene extends Scene {
 
 		this.terrainRenderPipeline.drawEntities(encoder, this.buffer, terrains, camera);
 		this.shapeRenderPipeline.drawEntities(encoder, this.buffer, shapes, camera);
-
-		//this.wireRenderPipeline.drawEntities(encoder, this.buffer, this.entities.values(), camera);
 	}
 
 	addEntity(entity: Entity): EntityId {
@@ -154,7 +154,7 @@ export class LineScene extends Scene {
 	}
 
 	clear(encoder: GPUCommandEncoder) {
-		const clearValue = { r: 0.2, g: 0.01, b: 0.3, a: 1.0 };
+		const clearValue = { r: 0.4, g: 0.1, b: 0.5, a: 1.0 };
 		const albedoView = this.buffer.albedo.createView();
 		const depthView = this.buffer.depth.createView();
 

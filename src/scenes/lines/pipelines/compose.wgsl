@@ -23,6 +23,16 @@ fn vs_main(@builtin(vertex_index) i: u32) -> VertexOut {
 	return out;
 }
 
+
+fn toneMap(color: vec3<f32>) -> vec3<f32> {
+	let a = 2.51;
+	let b = 0.03;
+	let c = 2.43;
+	let d = 0.59;
+	let e = 0.14;
+    return (color * (a * color + b)) / (color * (c * color + d) + e);
+}
+
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	let coord = vec2<u32>(in.position.xy);
@@ -31,5 +41,11 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	var color = vec4(0.0);
 
 	color = albedo;
-	return vec4(color.rgb * color.a, color.a);
+
+	var rgb = vec3(0.0);
+	rgb = color.rgb;
+	rgb = pow(rgb, vec3(2.2));
+	//rgb = toneMap(rgb);
+	//rgb += color.rgb - vec3(1.0);
+	return vec4(rgb * color.a, color.a);
 }

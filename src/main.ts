@@ -76,7 +76,7 @@ async function main() {
 
 		const rotation: Vector2 = [0.0, 0.0];
 		const velocity: Vector3 = [0.0, 0.0, 0.0];
-		const speed = 6.0 * dt;
+		const speed = 16.0 * dt;
 		const rotSpeed = 1.0 / 1000.0;
 
 		if (inputHandler.held('a')) {

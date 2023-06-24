@@ -48,6 +48,7 @@ const quadBarycentrics = array<vec3<f32>, 6>(
 	vec3(1.0, 0.0, 1.0),
 );
 
+
 fn getDisplacement(p: vec2<f32>) -> f32 {
 	let size = vec2<i32>(textureDimensions(heightmap));
 	let texSize = vec2<f32>(size) - vec2(1.0);
@@ -69,7 +70,8 @@ fn vs_main(in: Vertex) -> VertexOut {
 
 	var waterP = vec3((p + entity.offset) * 128.0, 0.0);
 	waterP += vec3(camera.t * 9.0, camera.t * 5.0, camera.t * 1.0);
-	let waterLevel = (fractalNoise(waterP, 1.0, 2) / 60.0);
+	//let waterLevel = (fractalNoise(waterP, 1.0, 2) / 60.0);
+	let waterLevel = sin(camera.t * 2.0) / 120.0;
 
 	var h = displacement / 10.0;
 	h = max(waterLevel, h);
@@ -85,7 +87,7 @@ fn vs_main(in: Vertex) -> VertexOut {
 	out.barycentric = quadBarycentrics[in.vertexId % 6];
 	out.faceColor = in.faceColor;
 	out.wireColor = in.wireColor;
-	out.height = displacement;
+	out.height = displacement - waterLevel * 8.0;
 
 	return out;
 }
@@ -95,9 +97,9 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	var faceColor = in.faceColor;
 	var wireColor = in.wireColor;
 
-	let w = 0.3;
+	let w = 0.2;
 	if in.height < w {
-		wireColor = mix(wireColor, vec4(0.01, 1.0, 1.0, 1.0), smoothstep(0.0, 0.5, abs(in.height - w)));
+		wireColor = mix(wireColor, vec4(0.01, 1.0, 1.0, 1.0), smoothstep(0.0, 0.3, abs(in.height - w)));
 	}
 
 	let wireGap = entity.thickness - 0.5;

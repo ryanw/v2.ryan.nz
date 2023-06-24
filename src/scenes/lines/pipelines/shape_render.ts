@@ -39,6 +39,7 @@ export class ShapeRenderPipeline extends Pipeline {
 				entryPoint: 'fs_main',
 				targets: [{
 					format: format || ctx.format,
+					/*
 					blend: {
 						color: {
 							operation: 'add',
@@ -51,6 +52,7 @@ export class ShapeRenderPipeline extends Pipeline {
 							dstFactor: 'one',
 						},
 					}
+					*/
 				}]
 			},
 			depthStencil: {
