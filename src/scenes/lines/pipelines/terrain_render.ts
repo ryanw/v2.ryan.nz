@@ -1,6 +1,6 @@
 import { Camera, Color, Context, Line, LineMesh, Mesh, Pipeline, WireMesh, createTexture } from 'engine';
 import { Matrix4, Point2, Point3, Vector2 } from 'engine/math';
-import SHADER_SOURCE from './face.wgsl';
+import SHADER_SOURCE from './terrain_render.wgsl';
 import { GBuffer } from '../gbuffer';
 import { Entity } from '..';
 
@@ -11,7 +11,7 @@ export interface Vertex {
 	color: Color,
 }
 
-export class FacePipeline extends Pipeline {
+export class TerrainRenderPipeline extends Pipeline {
 	private pipeline: GPURenderPipeline;
 	private entityBuffers: Map<Entity, GPUBuffer>;
 	private cameraBuffer: GPUBuffer;
@@ -22,12 +22,12 @@ export class FacePipeline extends Pipeline {
 
 		const { device } = ctx;
 		const module = device.createShaderModule({
-			label: 'FacePipeline Shader Module',
+			label: 'TerrainRenderPipeline Shader Module',
 			code: SHADER_SOURCE,
 		});
 
 		this.pipeline = device.createRenderPipeline({
-			label: 'FacePipeline',
+			label: 'TerrainRenderPipeline',
 			layout: 'auto',
 			primitive: { topology: 'triangle-list' },
 			vertex: {
@@ -62,7 +62,7 @@ export class FacePipeline extends Pipeline {
 		});
 
 		this.cameraBuffer = device.createBuffer({
-			label: 'FacePipeline Camera Buffer',
+			label: 'TerrainRenderPipeline Camera Buffer',
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 			size: 256,
 			mappedAtCreation: false,
@@ -76,7 +76,7 @@ export class FacePipeline extends Pipeline {
 		let buffer = this.entityBuffers.get(entity);
 		if (!buffer) {
 			buffer = this.ctx.device.createBuffer({
-				label: 'FacePipeline Entity Buffer',
+				label: 'TerrainRenderPipeline Entity Buffer',
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 				size: 80, // mat4x4<f32> + f32 + alignment
 				mappedAtCreation: false,
@@ -131,7 +131,7 @@ export class FacePipeline extends Pipeline {
 			const { mesh, heightmap = this.dummyHeightmap } = entity;
 			const entityBuffer = this.getEntityBuffer(entity);
 			const uniformBindGroup = device.createBindGroup({
-				label: 'FacePipeline Uniform Bind Group',
+				label: 'TerrainRenderPipeline Uniform Bind Group',
 				layout: this.pipeline.getBindGroupLayout(0),
 				entries: [
 					{ binding: 0, resource: { buffer: this.cameraBuffer } },

@@ -1,104 +1,147 @@
-import { Line, Camera, Context, Scene, LineMesh, Mesh } from 'engine';
-import { multiply, rotation, translation } from 'engine/math/transform';
-import { ICOSAHEDRON_LINES, ICOSAHEDRON_VERTICES, buildIcosahedron } from 'engine/models/icosahedron';
+import { Camera, Context, Scene, LineMesh, Mesh, WireMesh, Color } from 'engine';
+import { identity, multiply, rotation, scaling, translation } from 'engine/math/transform';
+import { buildIcosahedron, buildQuad, calculateNormals } from 'engine/models';
 import { ComposePipeline } from './pipelines/compose';
 import { GBuffer } from './gbuffer';
-import { PrimitivePipeline } from './pipelines/primitive';
-import { FacePipeline, Vertex } from './pipelines/face';
+import { TerrainRenderPipeline } from './pipelines/terrain_render';
 import { normalize } from 'engine/math/vectors';
+import { WireVertex } from 'engine/wire_mesh';
+import { WirePipeline } from './pipelines/wire';
+import { Chunk, Terrain } from './terrain';
+import { Matrix4, Point3 } from 'engine/math';
+import { ShapeRenderPipeline } from './pipelines/shape_render';
+
+type EntityId = number;
+
+export enum Material {
+	Terrain = 0,
+	Shape = 1,
+}
+
+export interface Entity {
+	mesh: WireMesh;
+	transform: Matrix4;
+	material: Material
+	heightmap?: GPUTexture;
+	offset?: [number, number];
+}
+
+interface TerrainChunk extends Chunk {
+	id: EntityId;
+}
+
+let NEXT_ENTITY_ID = 1;
+function nextEndityId(): number {
+	return NEXT_ENTITY_ID++;
+}
 
 export class LineScene extends Scene {
 	camera = new Camera();
 	composePipeline: ComposePipeline;
-	lineRenderPipeline: PrimitivePipeline;
-	faceRenderPipeline: FacePipeline;
+	terrainRenderPipeline: TerrainRenderPipeline;
+	shapeRenderPipeline: ShapeRenderPipeline;
+	wireRenderPipeline: WirePipeline;
 	buffer: GBuffer;
-	lineMeshes: Array<LineMesh> = [];
-	faceMeshes: Array<Mesh<Vertex>> = [];
+	scale: number = 1.0;
+	entities: Map<EntityId, Entity> = new Map();
+	chunks: Map<String, TerrainChunk> = new Map();
+	terrain: Terrain;
 
 	constructor(ctx: Context) {
 		super(ctx);
 
-		const lines: Array<Line> = [];
-		for (const [id0, id1] of ICOSAHEDRON_LINES) {
-			const p0 = ICOSAHEDRON_VERTICES[id0];
-			const p1 = ICOSAHEDRON_VERTICES[id1];
-			lines.push([p0, p1]);
+		this.scale = 64;
+		this.terrain = new Terrain(
+			ctx,
+			this.scale,
+			(position: Point3): WireVertex => ({
+				position,
+				normal: normalize([0.5, 0.5, 0]),
+				wireColor: [1.0, 0.4, 1.0, 1.0],
+				faceColor: [0.04, 0.1, 0.15, 1.0],
+			})
+		);
+
+		const r = 8;
+		for (let y = -r; y < r; y++) {
+			for (let x = -r; x < r; x++) {
+				this.addChunk(x, y);
+			}
 		}
 
-		this.lineMeshes.push(new LineMesh(ctx, lines));
-		this.lineMeshes.push(new LineMesh(ctx, lines));
-		this.lineMeshes.push(new LineMesh(ctx, lines));
-		this.lineMeshes.push(new LineMesh(ctx, lines));
-
-
-		const faces = buildIcosahedron((position, i) => ({
+		const icoVertices = buildIcosahedron((position: Point3): WireVertex => ({
 			position,
 			normal: normalize([0.5, 0.5, 0]),
-			barycentric: [
-				Number(i % 3 == 0),
-				Number(i % 3 == 1),
-				Number(i % 3 == 2),
-			],
-			color: [0.1, 0.1, 0.3, 1],
-		} as Vertex));
-
-		this.faceMeshes.push(new Mesh(ctx, faces));
-		this.faceMeshes.push(new Mesh(ctx, faces));
-		this.faceMeshes.push(new Mesh(ctx, faces));
-		this.faceMeshes.push(new Mesh(ctx, faces));
+			wireColor: [1.0, 1.0, 0.4, 1.0],
+			faceColor: [0.04, 0.1, 0.15, 1.0],
+		}));
+		calculateNormals(icoVertices);
+		const icoMesh = new WireMesh(ctx, icoVertices);
+		this.addEntity({ 
+			mesh: icoMesh, 
+			material: Material.Shape,
+			transform: multiply(
+				translation(0.0, 4.0, -5.0),
+			),
+		});
 
 		this.camera.position[0] += 0.0;
-		this.camera.position[1] -= 1.0;
-		this.camera.position[2] += 6.0;
+		this.camera.position[1] += 3.0;
+		this.camera.position[2] += 0.0;
 		this.buffer = new GBuffer(ctx);
 		this.composePipeline = new ComposePipeline(ctx);
-		this.lineRenderPipeline = new PrimitivePipeline(ctx, 'rgba8unorm');
-		this.faceRenderPipeline = new FacePipeline(ctx, 'rgba8unorm');
+		this.terrainRenderPipeline = new TerrainRenderPipeline(ctx, 'rgba8unorm');
+		this.shapeRenderPipeline = new ShapeRenderPipeline(ctx, 'rgba8unorm');
+		this.wireRenderPipeline = new WirePipeline(ctx, 'rgba8unorm');
 	}
 
-	drawFaces(encoder: GPUCommandEncoder, camera: Camera = this.camera) {
-		const entities = this.faceMeshes.map((mesh, i) => {
-			const transform = multiply(
-				translation(
-					-5 + i * 3.0,
-					Math.sin(performance.now() / 1000 * (this.lineMeshes.length - i)),
-					Math.cos(performance.now() / 800 * i),
-				),
-				rotation(
-					performance.now() / 444.0 * i,
-					performance.now() / 1000.0,
-					0.0,
-				),
-			);
-			return { mesh, transform };
-		});
-		this.faceRenderPipeline.drawEntities(encoder, this.buffer, entities, camera);
+	drawWires(encoder: GPUCommandEncoder, camera: Camera = this.camera) {
+		const terrains = filterMaterial(this.entities.values(), Material.Terrain);
+		const shapes = filterMaterial(this.entities.values(), Material.Shape);
+
+		this.terrainRenderPipeline.drawEntities(encoder, this.buffer, terrains, camera);
+		this.shapeRenderPipeline.drawEntities(encoder, this.buffer, shapes, camera);
+
+		//this.wireRenderPipeline.drawEntities(encoder, this.buffer, this.entities.values(), camera);
 	}
 
-	drawLines(encoder: GPUCommandEncoder, camera: Camera = this.camera) {
-		const entities = this.lineMeshes.map((mesh, i) => {
-			const transform = multiply(
-				translation(
-					-5 + i * 3.0,
-					Math.sin(performance.now() / 1000 * (this.lineMeshes.length - i)),
-					Math.cos(performance.now() / 800 * i),
-				),
-				rotation(
-					performance.now() / 444.0 * i,
-					performance.now() / 1000.0,
-					0.0,
-				),
-			);
-			return { mesh, transform };
+	addEntity(entity: Entity): EntityId {
+		const id = nextEndityId();
+		this.entities.set(id, entity);
+		return id;
+	}
+
+	removeEntity(id: EntityId): Entity | undefined {
+		const entity = this.entities.get(id);
+		this.entities.delete(id);
+		return entity;
+	}
+
+	addChunk(x: number, y: number) {
+		const chunk = this.terrain.generateChunk(x, y) as TerrainChunk;
+		const id = this.addEntity({
+			mesh: chunk.mesh,
+			material: Material.Terrain,
+			heightmap: chunk.heightmap,
+			offset: chunk.offset,
+			transform: multiply(
+				scaling(this.scale),
+				translation(x, 0, y),
+			),
 		});
-		this.lineRenderPipeline.drawEntities(encoder, this.buffer, entities, camera);
+		chunk.id = id;
+		this.chunks.set([x, y].join(','), chunk);
+	}
+
+	removeChunk(x: number, y: number) {
+		const chunk = this.chunks.get([x, y].join(','));
+		if (!chunk) return;
+		this.removeEntity(chunk.id);
 	}
 
 	async drawScene(encoder: GPUCommandEncoder, camera: Camera = this.camera) {
 		this.clear(encoder);
-		this.drawFaces(encoder, camera);
-		this.drawLines(encoder, camera);
+		this.drawWires(encoder, camera);
 		this.composePipeline.compose(encoder, this.ctx.currentTexture, this.buffer);
 	}
 
@@ -111,7 +154,7 @@ export class LineScene extends Scene {
 	}
 
 	clear(encoder: GPUCommandEncoder) {
-		const clearValue = { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
+		const clearValue = { r: 0.2, g: 0.01, b: 0.3, a: 1.0 };
 		const albedoView = this.buffer.albedo.createView();
 		const depthView = this.buffer.depth.createView();
 
@@ -129,5 +172,13 @@ export class LineScene extends Scene {
 				depthStoreOp: 'store',
 			}
 		}).end();
+	}
+}
+
+function *filterMaterial(entities: IterableIterator<Entity>, material: Material) {
+	for (const entity of entities) {
+		if (entity.material === material) {
+			yield entity;
+		}
 	}
 }

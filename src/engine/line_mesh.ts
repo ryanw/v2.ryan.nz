@@ -34,8 +34,6 @@ export class LineMesh {
 		const data = new Float32Array(this.lines.length * stride);
 
 		const colors = [
-			[0.5, 1.0, 0.1, 1.0],
-			/*
 			[1.0, 0.0, 0.0, 1.0],
 			[1.0, 0.5, 0.0, 1.0],
 			[1.0, 1.0, 0.0, 1.0],
@@ -49,10 +47,9 @@ export class LineMesh {
 	
 			[0.5, 0.0, 1.0, 1.0],
 			[1.0, 0.0, 0.5, 1.0],
-			*/
 		];
 
-		const thickness = 2;
+		const thickness = 4;
 		for (let i = 0; i < lines.length; i++) {
 			const [start, end] = lines[i];
 			const offset = i * stride;

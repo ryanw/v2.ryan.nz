@@ -107,6 +107,7 @@ function toArrayBuffer<V extends Vertex<V>>(vertices: Array<V>, attributes: Arra
  * @typeParm V - Type of the vertices in this mesh
  */
 export class Mesh<V extends Vertex<V>> {
+	ctx: Context;
 	vertices: Array<V>;
 	buffers: Record<keyof V, GPUBuffer>;
 
@@ -114,7 +115,9 @@ export class Mesh<V extends Vertex<V>> {
 	 * @param vertices Array of Vertices
 	 * @param attributes Array of the attributes on each Vertex, in the order they appear in the vertex shader
 	 */
-	constructor({ device }: Context, vertices: Array<V>) {
+	constructor(ctx: Context, vertices: Array<V>) {
+		this.ctx = ctx;
+		const { device } = ctx;
 		if (vertices.length < 1) {
 			throw new Error('Mesh must have at least 1 vertex');
 		}

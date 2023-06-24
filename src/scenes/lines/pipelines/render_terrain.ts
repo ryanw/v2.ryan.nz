@@ -11,7 +11,7 @@ export interface Vertex {
 	color: Color,
 }
 
-export class FacePipeline extends Pipeline {
+export class TerrainRenderPipeline extends Pipeline {
 	private pipeline: GPURenderPipeline;
 	private entityBuffers: Map<Entity, GPUBuffer>;
 	private cameraBuffer: GPUBuffer;

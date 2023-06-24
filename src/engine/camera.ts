@@ -1,7 +1,5 @@
-import { Matrix4, Plane, Point3, Vector3, Vector4 } from './math';
-import { identity, transformPoint } from './math/transform';
-import { inverse, multiply, multiplyVector, perspective, rotation, scaling, translation } from './math/transform';
-import { add, cross, reflect, } from './math/vectors';
+import { Matrix4, Point3, Vector3 } from './math';
+import { identity, transformPoint, inverse, multiply, multiplyVector, perspective, rotation, scaling, translation } from './math/transform';
 
 /**
  * A camera in 3D space

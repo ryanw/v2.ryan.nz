@@ -27,7 +27,7 @@ async function main() {
 		const { clientWidth, clientHeight } = el.parentElement;
 		const dpr = window.devicePixelRatio;
 
-		const div = 2;
+		const div = 1;
 		const w = clientWidth / div | 0;
 		const h = clientHeight / div | 0;
 
@@ -76,7 +76,7 @@ async function main() {
 
 		const rotation: Vector2 = [0.0, 0.0];
 		const velocity: Vector3 = [0.0, 0.0, 0.0];
-		const speed = 16.0 * dt;
+		const speed = 6.0 * dt;
 		const rotSpeed = 1.0 / 1000.0;
 
 		if (inputHandler.held('a')) {

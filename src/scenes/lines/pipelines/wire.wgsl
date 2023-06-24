@@ -2,14 +2,13 @@ struct Camera {
 	view: mat4x4<f32>,
 	projection: mat4x4<f32>,
 	resolution: vec2<f32>,
-	//time: f32,
 }
 
 struct Entity {
 	model: mat4x4<f32>,
 }
 
-struct Line {
+struct Wire {
 	start: vec3<f32>,
 	end: vec3<f32>,
 	size: vec2<f32>,
@@ -24,7 +23,7 @@ var<uniform> camera: Camera;
 var<uniform> entity: Entity;
 
 @group(1) @binding(0)
-var<storage, read> lines: array<Line>;
+var<storage, read> lines: array<Wire>;
 
 const offsets = array<vec2<f32>, 4>(
 	vec2(1.0, 1.0),
@@ -33,7 +32,7 @@ const offsets = array<vec2<f32>, 4>(
 	vec2(-1.0, -1.0),
 );
 
-struct LineVertex {
+struct WireVertex {
 	@builtin(instance_index) instanceId: u32,
 	@builtin(vertex_index) vertexId: u32,
 }
@@ -71,7 +70,7 @@ fn scaling(x: f32, y: f32, z: f32, w: f32) -> mat4x4<f32> {
 }
 
 @vertex
-fn vs_main(in: LineVertex) -> VertexOut {
+fn vs_main(in: WireVertex) -> VertexOut {
 	var out: VertexOut;
 
 	let line = lines[in.instanceId];
@@ -82,9 +81,8 @@ fn vs_main(in: LineVertex) -> VertexOut {
 	let res = camera.resolution;
 	let aspect = vec2(res.x / res.y, res.y / res.x);
 
-	// FIXME figure out 1.9
-	let start = line.start / 1.90;
-	let end = line.end / 1.90;
+	let start = line.start;
+	let end = line.end;
 
 
 

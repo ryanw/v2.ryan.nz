@@ -1,34 +1,12 @@
-import { Camera, Color, Context, LineMesh, Pipeline } from 'engine';
-import { Matrix4, Point2, Point3, Vector2 } from 'engine/math';
-import SHADER_SOURCE from './primitive.wgsl';
+import { Camera, Color, Context, WireMesh, Pipeline } from 'engine';
+import { Matrix4, Point3, Vector2 } from 'engine/math';
+import SHADER_SOURCE from './wire.wgsl';
 import { GBuffer } from '../gbuffer';
+import { Entity } from '..';
 
-export enum LineStyle {
-	Solid = 0,
-}
-
-export interface LineInstance {
-	start: Point3,
-	end: Point3,
-	color: Color,
-	style: LineStyle,
-	size: Vector2,
-}
-
-export interface LineVertex {
-	position: Point3,
-	uv: Point2,
-}
-
-export interface Entity {
-	mesh: LineMesh,
-	transform: Matrix4,
-}
-
-
-export class PrimitivePipeline extends Pipeline {
+export class WirePipeline extends Pipeline {
 	private pipeline: GPURenderPipeline;
-	private transformBuffers: Map<LineMesh, GPUBuffer>;
+	private transformBuffers: Map<Entity, GPUBuffer>;
 	private cameraBuffer: GPUBuffer;
 
 	constructor(ctx: Context, format?: GPUTextureFormat) {
@@ -36,12 +14,12 @@ export class PrimitivePipeline extends Pipeline {
 
 		const { device } = ctx;
 		const module = device.createShaderModule({
-			label: 'Line Primitive Shader Module',
+			label: 'Wire Shader Module',
 			code: SHADER_SOURCE,
 		});
 
 		this.pipeline = device.createRenderPipeline({
-			label: 'Line Primitive Pipeline',
+			label: 'Wire Pipeline',
 			layout: 'auto',
 			vertex: { module, entryPoint: 'vs_main', buffers: [] },
 			fragment: {
@@ -67,13 +45,13 @@ export class PrimitivePipeline extends Pipeline {
 			depthStencil: {
 				format: 'depth32float',
 				depthWriteEnabled: true,
-				// Lines should ge priority when z-fighting with faces
+				// Wires should ge priority when z-fighting with faces
 				depthCompare: 'less-equal',
 			},
 		});
 
 		this.cameraBuffer = device.createBuffer({
-			label: 'PrimitivePipeline Camera Buffer',
+			label: 'WirePipeline Camera Buffer',
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 			size: 256,
 			mappedAtCreation: false,
@@ -82,23 +60,22 @@ export class PrimitivePipeline extends Pipeline {
 		this.transformBuffers = new Map();
 	}
 
-	getTransformBuffer({ mesh, transform }: Entity): GPUBuffer {
-		let buffer = this.transformBuffers.get(mesh);
+	getTransformBuffer(entity: Entity): GPUBuffer {
+		let buffer = this.transformBuffers.get(entity);
 		if (!buffer) {
 			buffer = this.ctx.device.createBuffer({
-				label: 'PrimitivePipeline LineMesh Transform Buffer',
+				label: 'WirePipeline WireMesh Transform Buffer',
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 				size: 64, // mat4x4<f32>
 				mappedAtCreation: false,
 			});
-			this.transformBuffers.set(mesh, buffer);
+			this.transformBuffers.set(entity, buffer);
 		}
-		this.ctx.device.queue.writeBuffer(buffer, 0, new Float32Array(transform));
+		this.ctx.device.queue.writeBuffer(buffer, 0, new Float32Array(entity.transform));
 		return buffer;
 	}
 
-	drawEntities(encoder: GPUCommandEncoder, buffer: GBuffer, entities: Array<Entity>, camera: Camera) {
-		if (entities.length === 0) return;
+	drawEntities(encoder: GPUCommandEncoder, buffer: GBuffer, entities: IterableIterator<Entity>, camera: Camera) {
 		const { device } = this.ctx;
 
 		const depthView = buffer.depth.createView();
@@ -115,14 +92,12 @@ export class PrimitivePipeline extends Pipeline {
 			colorAttachments: [
 				{
 					view: albedo,
-					clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
 					loadOp: 'load',
 					storeOp: 'store',
 				},
 			],
 			depthStencilAttachment: {
 				view: depthView,
-				depthClearValue: 1.0,
 				depthLoadOp: 'load',
 				depthStoreOp: 'store',
 			}
@@ -135,7 +110,7 @@ export class PrimitivePipeline extends Pipeline {
 			const transformBuffer = this.getTransformBuffer(entity);
 
 			const cameraBindGroup = device.createBindGroup({
-				label: 'PrimitivePipeline Camera Bind Group',
+				label: 'WirePipeline Camera Bind Group',
 				layout: this.pipeline.getBindGroupLayout(0),
 				entries: [
 					{ binding: 0, resource: { buffer: this.cameraBuffer } },
@@ -143,16 +118,16 @@ export class PrimitivePipeline extends Pipeline {
 				],
 			});
 
-			const lineBindGroup = device.createBindGroup({
-				label: 'PrimitivePipeline LineMesh Bind Group',
+			const wireBindGroup = device.createBindGroup({
+				label: 'WirePipeline Wire Bind Group',
 				layout: this.pipeline.getBindGroupLayout(1),
-				entries: [{ binding: 0, resource: { buffer: mesh.buffer } }],
+				entries: [{ binding: 0, resource: { buffer: mesh.wireBuffer } }],
 			});
 
 
 			pass.setBindGroup(0, cameraBindGroup);
-			pass.setBindGroup(1, lineBindGroup);
-			pass.draw(4, mesh.lineCount);
+			pass.setBindGroup(1, wireBindGroup);
+			pass.draw(4, mesh.wireCount);
 		}
 		pass.end();
 	}

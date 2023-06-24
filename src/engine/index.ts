@@ -2,6 +2,7 @@ export { Scene } from './scene';
 export { Camera } from './camera';
 export { Mesh, Vertex, VertexArrays } from './mesh';
 export { LineMesh, Line } from './line_mesh';
+export { WireMesh } from './wire_mesh';
 export { Context } from './context';
 export { Pipeline } from './pipeline';
 export { InputHandler } from './input';
