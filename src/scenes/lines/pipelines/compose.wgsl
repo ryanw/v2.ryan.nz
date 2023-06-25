@@ -39,6 +39,13 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	var albedo = textureLoad(albedo, coord, 0);
 
 	var color = vec4(0.0);
+	let skyTopColor = vec4(0.2, 0.1, 0.7, 1.0);
+	let skyMidColor = vec4(0.8, 0.1, 0.9, 1.0);
+	let skyBotColor = vec4(0.9, 0.7, 0.1, 1.0);
+	let sky = smoothstep(0.4, 1.0, in.uv.y);
+	let haze = smoothstep(0.2, 0.9, in.uv.y);
+	var skyColor = mix(skyMidColor, skyTopColor, sky);
+	skyColor = mix(skyBotColor, skyColor, haze);
 
 	color = albedo;
 
@@ -47,5 +54,9 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	rgb = pow(rgb, vec3(2.2));
 	//rgb = toneMap(rgb);
 	//rgb += color.rgb - vec3(1.0);
-	return vec4(rgb * color.a, color.a);
+	color = vec4(rgb * color.a, color.a);
+
+	color = mix(skyColor, color, color.a);
+
+	return color;
 }

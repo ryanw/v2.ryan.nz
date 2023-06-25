@@ -139,7 +139,7 @@ function quad(scale: Vector2 = [1, 1], offset: Vector2 = [0, 0]): Array<WireVert
 		position: [0.0, 0.0, 0.0],
 		normal: [0.0, 0.0, 0.0],
 		wireColor: [0.1, 0.9, 0.1, 1.0],
-		faceColor: [0.2, 0.4, 0.1, 0.5],
+		faceColor: [0.2, 0.4, 0.1, 1.0],
 	};
 
 	const [sx, sy] = scale;

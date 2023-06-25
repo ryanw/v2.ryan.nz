@@ -166,7 +166,7 @@ export class LineScene extends Scene {
 	}
 
 	clear(encoder: GPUCommandEncoder) {
-		const clearValue = { r: 0.4, g: 0.1, b: 0.5, a: 1.0 };
+		const clearValue = { r: 0.4, g: 0.1, b: 0.5, a: 0.0 };
 		const albedoView = this.buffer.albedo.createView();
 		const depthView = this.buffer.depth.createView();
 
