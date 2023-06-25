@@ -1,4 +1,7 @@
 @include 'engine/noise.wgsl';
+@include 'engine/color.wgsl';
+
+const STAR_CELL_SIZE: f32 = 48.0;
 
 struct Uniforms {
 	t: f32
@@ -27,7 +30,7 @@ fn vs_main(@builtin(vertex_index) i: u32) -> VertexOut {
 	);
 
 	out.position = vec4(points[i], 0.0, 1.0);
-	out.uv = points[i] * 0.5 + 0.5;
+	out.uv = points[i] * 0.5;
 
 	return out;
 }
@@ -48,28 +51,79 @@ fn starPosition(id: vec2<f32>) -> vec2<f32> {
 	return sin(vec2(n0, n1)) * 0.4;
 }
 
+fn sdfLine(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
+	let pa = p - a;
+	let ba = b - a;
+	let t = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+	return length(pa - ba * t);
+}
+
 fn drawStar(uv: vec2<f32>) -> vec4<f32> {
-	var d = smoothstep(0.15, 0.0, length(uv));
-	return vec4(vec3(d), 1.0);
+	let d = length(uv);
+	var m = 1.0 / 64.0 / d;//smoothstep(0.2, 0.05, d);
+	var rays = max(0.0, 1.0 - abs(uv.x * uv.y * 200.0));
+	m += smoothstep(0.05, 0.8, rays / 5.0);
+	m = pow(m, 1.3);
+
+	return vec4(vec3(m), 1.0);
+}
+
+fn drawLine(uv: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> vec4<f32> {
+	var n = sdfLine(uv - 0.5, a, b);
+	let l = length(b - a);
+	n = smoothstep(1.0 / 30.0, 1.0 / 100.0, n);
+	n *= smoothstep(1.1, 0.4, l);
+	return mix(vec4(0.0), vec4(0.7, 0.9, 0.1, 1.0), n);
 }
 
 fn drawStarField(ouv: vec2<f32>) -> vec4<f32> {
-	let box = 24.0;
+	let box = STAR_CELL_SIZE;
 	let size = vec2(1.0) / vec2<f32>(textureDimensions(albedo));
-	var uv = ouv / (size * box);
+	let uv = ouv / (size * box);
 
 	let gv = fract(uv) - 0.5;
 	let id = floor(uv);
 
 	var color = vec4(0.0);
+	var p: array<vec2<f32>, 9>;
+	var i = 0;
 	for (var y = -1; y <= 1; y++) {
 		for (var x = -1; x <= 1; x++) {
 			let tile = vec2(f32(x), f32(y));
-			let offset = starPosition(id + tile);
-			color = max(color, drawStar(gv - tile - offset));
+			let offset = starPosition(id - tile);
+			p[i] = id - tile - offset;
+			i += 1;
+
+			let pos = gv + tile + offset;
+			color = max(color, drawStar(pos));
 		}
 	}
+
+
+	for (i = 0; i < 9; i++) {
+		if i != 4 {
+			color = max(color, drawLine(uv, p[4], p[i]));
+		}
+	}
+	color = max(color, drawLine(uv, p[1], p[3]));
+	color = max(color, drawLine(uv, p[1], p[5]));
+	color = max(color, drawLine(uv, p[5], p[7]));
+	color = max(color, drawLine(uv, p[7], p[3]));
+
+
 	return color;
+}
+
+fn drawDebugSky(ouv: vec2<f32>) -> vec4<f32> {
+	let box = STAR_CELL_SIZE;
+	let size = vec2(1.0) / vec2<f32>(textureDimensions(albedo));
+	let uv = ouv / (size * box);
+	let gv = fract(uv) - 0.5;
+	let id = floor(uv);
+
+	let n0 = rnd3(vec3(id, 100.0));
+
+	return hsl(n0, 1.0, 0.5);
 }
 
 @fragment
@@ -81,16 +135,18 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	let skyTopColor = vec4(0.3, 0.1, 0.7, 1.0);
 	let skyMidColor = vec4(0.8, 0.1, 0.9, 1.0);
 	let skyBotColor = vec4(0.9, 0.7, 0.1, 1.0);
-	let sky = smoothstep(0.4, 1.0, in.uv.y);
-	let haze = smoothstep(0.2, 0.9, in.uv.y);
-	let stars = smoothstep(0.6, 1.0, in.uv.y);
+	let sky = smoothstep(-0.1, 0.5, in.uv.y);
+	let haze = smoothstep(-0.2, 0.4, in.uv.y);
+	let stars = smoothstep(0.0, 0.5, in.uv.y);
 	var skyColor = mix(skyMidColor, skyTopColor, sky);
 	skyColor = mix(skyBotColor, skyColor, haze);
 
 
-	let starColor = drawStarField(in.uv);
+	var starColor = drawStarField(in.uv);
+	//starColor *= drawDebugSky(in.uv);
 	skyColor += starColor * starColor.a * stars;
 	//skyColor = starColor;
+	//skyColor += drawDebugSky(in.uv) / 5.0;
 
 	color = albedo;
 
