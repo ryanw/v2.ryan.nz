@@ -84,7 +84,7 @@ export class LineScene extends Scene {
 		});
 
 		this.camera.position[0] += 0.0;
-		this.camera.position[1] += 3.0;
+		this.camera.position[1] += 4.0;
 		this.camera.position[2] += 0.0;
 		this.buffer = new GBuffer(ctx);
 		this.composePipeline = new ComposePipeline(ctx);

@@ -4,6 +4,7 @@ import SHADER_SOURCE from './compose.wgsl';
 
 export class ComposePipeline extends Pipeline {
 	private pipeline: GPURenderPipeline;
+	private uniformBuffer: GPUBuffer;
 
 	constructor(ctx: Context, format?: GPUTextureFormat) {
 		super(ctx);
@@ -21,12 +22,18 @@ export class ComposePipeline extends Pipeline {
 			fragment: { module, entryPoint: 'fs_main', targets: [{ format: format || ctx.format }] },
 			primitive: { topology: 'triangle-strip' },
 		});
+
+		this.uniformBuffer = device.createBuffer({
+			size: 4,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
 	}
 
 	compose(encoder: GPUCommandEncoder, texture: GPUTexture, buffer: GBuffer) {
 		const { device } = this.ctx;
 
 		const view = texture.createView();
+		device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([performance.now() / 1000.0]));
 
 		const passDescriptor: GPURenderPassDescriptor = {
 			colorAttachments: [
@@ -43,7 +50,8 @@ export class ComposePipeline extends Pipeline {
 			label: 'Line Compose Bind Group',
 			layout: this.pipeline.getBindGroupLayout(0),
 			entries: [
-				{ binding: 0, resource: buffer.albedo.createView() },
+				{ binding: 0, resource: { buffer: this.uniformBuffer } },
+				{ binding: 1, resource: buffer.albedo.createView() },
 			],
 		});
 
