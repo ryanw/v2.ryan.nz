@@ -11,6 +11,7 @@ import { Chunk, Terrain } from './terrain';
 import { Matrix4, Point3 } from 'engine/math';
 import { ShapeRenderPipeline } from './pipelines/shape_render';
 import { RoadRenderPipeline } from './pipelines/road_render';
+import { CarMesh } from './car_mesh';
 
 type EntityId = number;
 
@@ -61,31 +62,24 @@ export class LineScene extends Scene {
 				normal: normalize([0.5, 0.5, 0]),
 				//wireColor: [14.0, 1.4, 11.0, 1.0],
 				wireColor: [0.9, 0.3, 0.9, 1.0],
-				//wireColor: [Math.random(), Math.random(), Math.random(), 1.0],
 				faceColor: [0.1, 0.2, 0.4, 1.0],
 			})
 		);
 
-		const r = 16;
-		for (let y = -r; y < r; y++) {
-			for (let x = -r; x < r; x++) {
-				this.addChunk(x, y);
+		const rx = 4;
+		const ry = 16;
+		for (let y = 0; y < ry; y++) {
+			for (let x = -rx; x < rx; x++) {
+				this.addChunk(x, -y);
 			}
 		}
 
-		const icoVertices = buildIcosahedron((position: Point3): WireVertex => ({
-			position,
-			normal: normalize([0.5, 0.5, 0]),
-			wireColor: [1.0, 0.1, 0.1, 1.0],
-			faceColor: [0.3, 0.1, 0.1, 1.0],
-		}));
-		calculateNormals(icoVertices);
-		const icoMesh = new WireMesh(ctx, icoVertices);
+		const car = new CarMesh(ctx);
 		this.addEntity({ 
-			mesh: icoMesh, 
+			mesh: car, 
 			material: Material.Shape,
 			transform: multiply(
-				translation(2.0, 4.0, -8.0),
+				translation(-2.0, 4.0, -8.0),
 			),
 		});
 
@@ -134,6 +128,16 @@ export class LineScene extends Scene {
 		this.removeEntity(chunk.id);
 	}
 
+	updateEntities() {
+		const shapes = filterMaterial(this.entities.values(), Material.Shape);
+		for (const shape of shapes) {
+			shape.transform = multiply(
+				translation(-2.0, 2.5, -5.0),
+				//rotation(0.0, performance.now() / 1000.0, 0.0),
+			);
+		}
+	}
+
 	async drawScene(encoder: GPUCommandEncoder, camera: Camera = this.camera) {
 		this.clear(encoder);
 
@@ -153,6 +157,7 @@ export class LineScene extends Scene {
 	}
 
 	async drawFrame() {
+		this.updateEntities();
 		const { ctx, camera } = this;
 		const [w, h] = ctx.size;
 		this.buffer.resize(w, h);

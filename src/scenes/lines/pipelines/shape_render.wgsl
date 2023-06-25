@@ -34,6 +34,16 @@ struct VertexOut {
 	@location(4) wireColor: vec4<f32>,
 }
 
+const quadBarycentrics = array<vec3<f32>, 6>(
+	vec3(1.0, 0.0, 1.0),
+	vec3(0.0, 1.0, 1.0),
+	vec3(0.0, 0.0, 1.0),
+
+	vec3(1.0, 0.0, 0.0),
+	vec3(1.0, 1.0, 0.0),
+	vec3(1.0, 0.0, 1.0),
+);
+
 const barycentrics = array<vec3<f32>, 3>(
 	vec3(1.0, 0.0, 0.0),
 	vec3(0.0, 1.0, 0.0),
@@ -54,7 +64,8 @@ fn vs_main(in: Vertex) -> VertexOut {
 
 	out.position = position;
 	out.normal = normal;
-	out.barycentric = barycentrics[in.vertexId % 3];
+	//out.barycentric = barycentrics[in.vertexId % 3];
+	out.barycentric = quadBarycentrics[in.vertexId % 6];
 	out.faceColor = in.faceColor;
 	out.wireColor = in.wireColor;
 

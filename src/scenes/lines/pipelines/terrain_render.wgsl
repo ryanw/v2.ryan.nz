@@ -1,7 +1,7 @@
 @include 'engine/noise.wgsl';
 
 const COAST_THICKNESS: f32 = 1.0 / 64.0;
-const WATER_LEVEL: f32 = 0.0;
+const WATER_LEVEL: f32 = 1.0 / 100.0;
 const ROAD_LEVEL: f32 = 1.0 / 33.0;
 const ROAD_WIDTH: f32 = 12.0;
 
@@ -74,15 +74,17 @@ fn vs_main(in: Vertex) -> VertexOut {
 	var displacement = getDisplacement(p);
 
 
-	var waterP = vec3((p + entity.offset) * 128.0, 0.0);
+	var waterP = vec3((p + entity.offset) * 256.0, 0.0);
 	waterP += vec3(camera.t * 9.0, camera.t * 5.0, camera.t * 1.0);
-	//let waterLevel = (fractalNoise(waterP, 1.0, 2) / 60.0);
-	let waterLevel = sin(camera.t * 2.0) / 120.0 + WATER_LEVEL;
+	let waterLevel = (fractalNoise(waterP, 1.0, 2) / 60.0) + WATER_LEVEL;
+	//let waterLevel = sin(camera.t * 2.0) / 240.0 + WATER_LEVEL;
 
 	var h = displacement / 10.0;
 
 	let mv = camera.view * entity.model;
 	let mvp = camera.projection * mv;
+
+	let viewPosition = mv * vec4(in.position, 1.0);
 
 	// Flatten around road
 	let worldPosition = entity.model * vec4(in.position + vec3(0.0, h, 0.0), 1.0);
@@ -91,8 +93,14 @@ fn vs_main(in: Vertex) -> VertexOut {
 	h = mix(ROAD_LEVEL, h, t);
 
 
-	var wireColor = in.wireColor;
-	wireColor = mix(vec4(0.01, 1.0, 1.0, 1.0), wireColor, smoothstep(0.0, COAST_THICKNESS, h - waterLevel));
+	let waterColor = vec4(1.0);
+	var wireColor = vec4(1.0);
+	let nearColor = vec4(1.0, 0.1, 1.0, 1.0);
+	let farColor = vec4(0.1, 0.8, 1.0, 1.0);
+	var tt = abs(viewPosition.z) / 100.0;
+	tt = smoothstep(0.0, 1.0, tt);
+	wireColor = mix(nearColor, farColor, tt);
+	wireColor = mix(waterColor, wireColor, smoothstep(0.0, COAST_THICKNESS, h - waterLevel));
 
 	h = max(waterLevel, h);
 

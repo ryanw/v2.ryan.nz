@@ -64,7 +64,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	let shade = clamp(dot(normal, lightDir), 0.0, 1.0);
 
 	let lineColor = vec4(1.0, 1.0, 0.1, 1.0);
-	let edgeColor = vec4(0.1, 1.0, 0.9, 1.0);
+	let edgeColor = vec4(0.9, 0.1, 0.9, 1.0);
 
 	let linePos = (sin(in.worldPosition.z / 0.5));
 	var center = smoothstep(0.0, 1.0 / 100.0, linePos);
@@ -72,11 +72,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	center *= 1.0 - smoothstep(0.1, 0.12, abs(in.worldPosition.x));
 	color = mix(color, lineColor, center);
 
-	var edge = smoothstep(2.65, 2.7, abs(in.worldPosition.x));
+	var edge = smoothstep(2.75, 2.8, abs(in.worldPosition.x));
 	color = mix(color, edgeColor, edge);
-
-	edge = smoothstep(2.96, 2.98, abs(in.worldPosition.x));
-	color = mix(color, vec4(0.9, 0.3, 0.9, 1.0), edge);
 
 	return color;
 }
