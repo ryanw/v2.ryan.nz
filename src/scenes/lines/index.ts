@@ -10,6 +10,7 @@ import { WirePipeline } from './pipelines/wire';
 import { Chunk, Terrain } from './terrain';
 import { Matrix4, Point3 } from 'engine/math';
 import { ShapeRenderPipeline } from './pipelines/shape_render';
+import { RoadRenderPipeline } from './pipelines/road_render';
 
 type EntityId = number;
 
@@ -40,6 +41,7 @@ export class LineScene extends Scene {
 	composePipeline: ComposePipeline;
 	terrainRenderPipeline: TerrainRenderPipeline;
 	shapeRenderPipeline: ShapeRenderPipeline;
+	roadRenderPipeline: RoadRenderPipeline;
 	wireRenderPipeline: WirePipeline;
 	buffer: GBuffer;
 	scale: number = 1.0;
@@ -83,7 +85,7 @@ export class LineScene extends Scene {
 			mesh: icoMesh, 
 			material: Material.Shape,
 			transform: multiply(
-				translation(0.0, 4.0, -5.0),
+				translation(2.0, 4.0, -8.0),
 			),
 		});
 
@@ -94,15 +96,8 @@ export class LineScene extends Scene {
 		this.composePipeline = new ComposePipeline(ctx);
 		this.terrainRenderPipeline = new TerrainRenderPipeline(ctx, 'rgba16float');
 		this.shapeRenderPipeline = new ShapeRenderPipeline(ctx, 'rgba16float');
+		this.roadRenderPipeline = new RoadRenderPipeline(ctx, 'rgba16float');
 		this.wireRenderPipeline = new WirePipeline(ctx, 'rgba16float');
-	}
-
-	drawWires(encoder: GPUCommandEncoder, camera: Camera = this.camera) {
-		const terrains = filterMaterial(this.entities.values(), Material.Terrain);
-		const shapes = filterMaterial(this.entities.values(), Material.Shape);
-
-		this.terrainRenderPipeline.drawEntities(encoder, this.buffer, terrains, camera);
-		this.shapeRenderPipeline.drawEntities(encoder, this.buffer, shapes, camera);
 	}
 
 	addEntity(entity: Entity): EntityId {
@@ -141,7 +136,19 @@ export class LineScene extends Scene {
 
 	async drawScene(encoder: GPUCommandEncoder, camera: Camera = this.camera) {
 		this.clear(encoder);
-		this.drawWires(encoder, camera);
+
+		// Draw terrain
+		const terrains = filterMaterial(this.entities.values(), Material.Terrain);
+		this.terrainRenderPipeline.drawEntities(encoder, this.buffer, terrains, camera);
+
+		// Draw shapes
+		const shapes = filterMaterial(this.entities.values(), Material.Shape);
+		this.shapeRenderPipeline.drawEntities(encoder, this.buffer, shapes, camera);
+
+		// Draw Road
+		this.roadRenderPipeline.drawRoad(encoder, this.buffer, camera);
+
+		// Post process + draw to screen
 		this.composePipeline.compose(encoder, this.ctx.currentTexture, this.buffer);
 	}
 

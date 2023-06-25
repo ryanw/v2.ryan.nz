@@ -1,5 +1,10 @@
 @include 'engine/noise.wgsl';
 
+const COAST_THICKNESS: f32 = 1.0 / 64.0;
+const WATER_LEVEL: f32 = 0.0;
+const ROAD_LEVEL: f32 = 1.0 / 33.0;
+const ROAD_WIDTH: f32 = 12.0;
+
 struct Camera {
 	view: mat4x4<f32>,
 	projection: mat4x4<f32>,
@@ -66,18 +71,30 @@ fn vs_main(in: Vertex) -> VertexOut {
 	var out: VertexOut;
 
 	let p = in.position.xz;
-	let displacement = getDisplacement(p);
+	var displacement = getDisplacement(p);
+
 
 	var waterP = vec3((p + entity.offset) * 128.0, 0.0);
 	waterP += vec3(camera.t * 9.0, camera.t * 5.0, camera.t * 1.0);
 	//let waterLevel = (fractalNoise(waterP, 1.0, 2) / 60.0);
-	let waterLevel = sin(camera.t * 2.0) / 120.0;
+	let waterLevel = sin(camera.t * 2.0) / 120.0 + WATER_LEVEL;
 
 	var h = displacement / 10.0;
-	h = max(waterLevel, h);
 
 	let mv = camera.view * entity.model;
 	let mvp = camera.projection * mv;
+
+	// Flatten around road
+	let worldPosition = entity.model * vec4(in.position + vec3(0.0, h, 0.0), 1.0);
+	let x = abs(worldPosition.x);
+	let t = clamp(smoothstep(0.2, 1.0, x / ROAD_WIDTH), 0.0, 1.0);
+	h = mix(ROAD_LEVEL, h, t);
+
+
+	var wireColor = in.wireColor;
+	wireColor = mix(vec4(0.01, 1.0, 1.0, 1.0), wireColor, smoothstep(0.0, COAST_THICKNESS, h - waterLevel));
+
+	h = max(waterLevel, h);
 
 	let position = mvp * vec4(in.position + vec3(0.0, h, 0.0), 1.0);
 	let normal = normalize((entity.model * vec4(in.normal, 0.0)).xyz);
@@ -86,8 +103,8 @@ fn vs_main(in: Vertex) -> VertexOut {
 	out.normal = normal;
 	out.barycentric = quadBarycentrics[in.vertexId % 6];
 	out.faceColor = in.faceColor;
-	out.wireColor = in.wireColor;
-	out.height = displacement - waterLevel * 8.0;
+	out.wireColor = wireColor;
+	out.height = h;
 
 	return out;
 }
@@ -97,13 +114,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	var faceColor = in.faceColor;
 	var wireColor = in.wireColor;
 
-	let w = 0.2;
-	if in.height < w {
-		wireColor = mix(wireColor, vec4(0.01, 1.0, 1.0, 1.0), smoothstep(0.0, 0.3, abs(in.height - w)));
-	}
 
-	let wireGap = entity.thickness - 0.5;
-	let g = edgeDistance(in.barycentric, wireGap, 0.333);
+	let g = edgeDistance(in.barycentric, entity.thickness, 0.0);
 	return mix(wireColor, faceColor, g);
 }
 

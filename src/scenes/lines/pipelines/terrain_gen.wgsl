@@ -25,16 +25,20 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 	let p = vec3(vec2<f32>(samplePos), 0.0);
 	//var h = fractalNoise(p / 1.0, 1.0, 5) * 1.0 + 0.2;
 
-	var freq = 64.0;
+	var freq = 32.0;
 	var amp = 1.0;
-	var h = 0.2;
-	h += smoothNoise(p / freq) * amp;
-
-	freq /= 6.0;
-	amp /= 4.0;
+	var h = 0.5;
 	h += smoothNoise(p / freq) * amp;
 
 	freq /= 4.0;
+	amp /= 2.0;
+	h += smoothNoise(p / freq) * amp;
+
+	freq /= 2.0;
+	amp /= 4.0;
+	h += smoothNoise(p / freq) * amp;
+
+	freq /= 2.0;
 	amp /= 2.0;
 	h += smoothNoise(p / freq) * amp;
 

@@ -91,7 +91,7 @@ export class TerrainRenderPipeline extends Pipeline {
 			// entity.offset
 			...(entity.offset || [0, 0]),
 			// entity.thickness
-			2.0,
+			entity.mesh.wireThickness,
 
 		]));
 		return buffer;

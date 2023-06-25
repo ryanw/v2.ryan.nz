@@ -39,20 +39,6 @@ export class ShapeRenderPipeline extends Pipeline {
 				entryPoint: 'fs_main',
 				targets: [{
 					format: format || ctx.format,
-					/*
-					blend: {
-						color: {
-							operation: 'add',
-							srcFactor: 'src-alpha',
-							dstFactor: 'one-minus-src-alpha',
-						},
-						alpha: {
-							operation: 'add',
-							srcFactor: 'one',
-							dstFactor: 'one',
-						},
-					}
-					*/
 				}]
 			},
 			depthStencil: {
@@ -87,7 +73,7 @@ export class ShapeRenderPipeline extends Pipeline {
 			// entity.model
 			...entity.transform,
 			// entity.thickness
-			2.0,
+			entity.mesh.wireThickness,
 
 		]));
 		return buffer;
