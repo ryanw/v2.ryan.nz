@@ -89,7 +89,7 @@ fn vs_main(in: Vertex) -> VertexOut {
 	// Flatten around road
 	let worldPosition = entity.model * vec4(in.position + vec3(0.0, h, 0.0), 1.0);
 	let x = abs(worldPosition.x);
-	let t = clamp(smoothstep(0.2, 1.0, x / ROAD_WIDTH), 0.0, 1.0);
+	let t = clamp(smoothstep(0.25, 1.0, x / ROAD_WIDTH), 0.0, 1.0);
 	h = mix(ROAD_LEVEL, h, t);
 
 

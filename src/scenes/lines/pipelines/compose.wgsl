@@ -1,7 +1,7 @@
 @include 'engine/noise.wgsl';
 @include 'engine/color.wgsl';
 
-const STAR_CELL_SIZE: f32 = 48.0;
+const STAR_CELL_SIZE: f32 = 92.0;
 
 struct Uniforms {
 	t: f32
@@ -46,9 +46,12 @@ fn toneMap(color: vec3<f32>) -> vec3<f32> {
 }
 
 fn starPosition(id: vec2<f32>) -> vec2<f32> {
-	let n0 = rnd3(vec3(id, 10.0)) * 1.0 * (100.0 + u.t);
-	let n1 = rnd3(vec3(id, 20.0)) * 1.0 * (100.0 + u.t);
-	return sin(vec2(n0, n1)) * 0.4;
+	let n0 = rnd3(vec3(id, 10.0));
+	let n1 = rnd3(vec3(id, 20.0));
+	let n2 = rnd3(vec3(id, 30.0));
+	let t = 314.0 + u.t * n2 / 2.0;
+
+	return sin(vec2(n0, n1) * t) * 0.3;
 }
 
 fn sdfLine(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
@@ -63,16 +66,27 @@ fn drawStar(uv: vec2<f32>) -> vec4<f32> {
 	var m = 1.0 / 64.0 / d;//smoothstep(0.2, 0.05, d);
 	var rays = max(0.0, 1.0 - abs(uv.x * uv.y * 200.0));
 	m += smoothstep(0.05, 0.8, rays / 5.0);
-	m = pow(m, 1.3);
+	m = pow(m, 1.8);
 
 	return vec4(vec3(m), 1.0);
 }
 
-fn drawLine(uv: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> vec4<f32> {
-	var n = sdfLine(uv - 0.5, a, b);
+fn drawLine(ouv: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> vec4<f32> {
+	let uv = ouv - 0.5;
+	var n = sdfLine(uv, a, b);
+	let da = length(uv - a);
+	let db = length(uv - b);
+	
+	var d = min(da, db);
+	let f = 256.0;
+
+	// Thickness
+	n = smoothstep(1.0 / (f * d), 0.0, n);
+
+	// Distance
 	let l = length(b - a);
-	n = smoothstep(1.0 / 30.0, 1.0 / 100.0, n);
-	n *= smoothstep(1.1, 0.4, l);
+	n *= smoothstep(0.9, 0.5, l);
+
 	return mix(vec4(0.0), vec4(0.7, 0.9, 0.1, 1.0), n);
 }
 
