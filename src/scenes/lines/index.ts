@@ -12,6 +12,7 @@ import { Matrix4, Point3 } from 'engine/math';
 import { ShapeRenderPipeline } from './pipelines/shape_render';
 import { RoadRenderPipeline } from './pipelines/road_render';
 import { CarMesh } from './car_mesh';
+import { SkyRenderPipeline } from './pipelines/sky_render';
 
 type EntityId = number;
 
@@ -43,6 +44,7 @@ export class LineScene extends Scene {
 	terrainRenderPipeline: TerrainRenderPipeline;
 	shapeRenderPipeline: ShapeRenderPipeline;
 	roadRenderPipeline: RoadRenderPipeline;
+	skyRenderPipeline: SkyRenderPipeline;
 	wireRenderPipeline: WirePipeline;
 	buffer: GBuffer;
 	scale: number = 1.0;
@@ -91,6 +93,7 @@ export class LineScene extends Scene {
 		this.terrainRenderPipeline = new TerrainRenderPipeline(ctx, 'rgba16float');
 		this.shapeRenderPipeline = new ShapeRenderPipeline(ctx, 'rgba16float');
 		this.roadRenderPipeline = new RoadRenderPipeline(ctx, 'rgba16float');
+		this.skyRenderPipeline = new SkyRenderPipeline(ctx, 'rgba16float');
 		this.wireRenderPipeline = new WirePipeline(ctx, 'rgba16float');
 	}
 
@@ -140,6 +143,9 @@ export class LineScene extends Scene {
 
 	async drawScene(encoder: GPUCommandEncoder, camera: Camera = this.camera) {
 		this.clear(encoder);
+
+		// Draw Sky
+		this.skyRenderPipeline.drawSky(encoder, this.buffer, camera);
 
 		// Draw terrain
 		const terrains = filterMaterial(this.entities.values(), Material.Terrain);

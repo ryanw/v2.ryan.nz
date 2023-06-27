@@ -1,7 +1,8 @@
 import { Camera, Color, Context, Pipeline } from 'engine';
 import { Point3 } from 'engine/math';
+import { inverse } from 'engine/math/transform';
 import { GBuffer } from '../gbuffer';
-import SHADER_SOURCE from './road_render.wgsl';
+import SHADER_SOURCE from './sky_render.wgsl';
 import { multiply, scaling, translation } from 'engine/math/transform';
 
 export interface Vertex {
@@ -11,7 +12,7 @@ export interface Vertex {
 	color: Color,
 }
 
-export class RoadRenderPipeline extends Pipeline {
+export class SkyRenderPipeline extends Pipeline {
 	private pipeline: GPURenderPipeline;
 	private entityBuffer: GPUBuffer;
 	private cameraBuffer: GPUBuffer;
@@ -21,12 +22,12 @@ export class RoadRenderPipeline extends Pipeline {
 
 		const { device } = ctx;
 		const module = device.createShaderModule({
-			label: 'RoadRenderPipeline Shader Module',
+			label: 'SkyRenderPipeline Shader Module',
 			code: SHADER_SOURCE,
 		});
 
 		this.pipeline = device.createRenderPipeline({
-			label: 'RoadRenderPipeline',
+			label: 'SkyRenderPipeline',
 			layout: 'auto',
 			primitive: { topology: 'triangle-strip' },
 			vertex: {
@@ -39,50 +40,37 @@ export class RoadRenderPipeline extends Pipeline {
 				entryPoint: 'fs_main',
 				targets: [{ format: format || ctx.format }]
 			},
-			depthStencil: {
-				format: 'depth32float',
-				depthWriteEnabled: true,
-				depthCompare: 'less',
-			},
 		});
 
 		this.cameraBuffer = device.createBuffer({
-			label: 'RoadRenderPipeline Camera Buffer',
+			label: 'SkyRenderPipeline Camera Buffer',
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 			size: 256,
 			mappedAtCreation: false,
 		});
 
 		this.entityBuffer = device.createBuffer({
-			label: 'RoadRenderPipeline Entity Buffer',
+			label: 'SkyRenderPipeline Entity Buffer',
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 			size: 64,
 			mappedAtCreation: false,
 		});
 	}
 
-	drawRoad(encoder: GPUCommandEncoder, buffer: GBuffer, camera: Camera) {
+	drawSky(encoder: GPUCommandEncoder, buffer: GBuffer, camera: Camera) {
 		const { device } = this.ctx;
 
-		const depthView = buffer.depth.createView();
 		const albedo = buffer.albedo.createView();
 
 
 		device.queue.writeBuffer(this.cameraBuffer, 0, new Float32Array([
 			...camera.model,
+			...inverse(camera.model)!,
 			...camera.projection,
 			...buffer.size,
 			// t: f32
 			performance.now() / 1000.0,
 		]));
-
-		const roadWidth = 3.0;
-		const roadLength = 2048.0;
-		const roadTransform = multiply(
-			translation(0.0, 2.0, -roadLength + camera.position[2]),
-			scaling(roadWidth, 1.0, roadLength),
-		);
-		this.ctx.device.queue.writeBuffer(this.entityBuffer, 0, new Float32Array(roadTransform));
 
 		const passDescriptor: GPURenderPassDescriptor = {
 			colorAttachments: [
@@ -92,11 +80,6 @@ export class RoadRenderPipeline extends Pipeline {
 					storeOp: 'store',
 				},
 			],
-			depthStencilAttachment: {
-				view: depthView,
-				depthLoadOp: 'load',
-				depthStoreOp: 'store',
-			}
 		};
 
 		const uniformBindGroup = device.createBindGroup({
@@ -104,7 +87,6 @@ export class RoadRenderPipeline extends Pipeline {
 			layout: this.pipeline.getBindGroupLayout(0),
 			entries: [
 				{ binding: 0, resource: { buffer: this.cameraBuffer } },
-				{ binding: 1, resource: { buffer: this.entityBuffer } },
 			],
 		});
 

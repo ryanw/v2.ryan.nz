@@ -128,7 +128,7 @@ fn drawStarField(ouv: vec2<f32>) -> vec4<f32> {
 	return color;
 }
 
-fn drawDebugSky(ouv: vec2<f32>) -> vec4<f32> {
+fn drawDebugSkyGrid(ouv: vec2<f32>) -> vec4<f32> {
 	let box = STAR_CELL_SIZE;
 	let size = vec2(1.0) / vec2<f32>(textureDimensions(albedo));
 	let uv = ouv / (size * box);
@@ -139,6 +139,11 @@ fn drawDebugSky(ouv: vec2<f32>) -> vec4<f32> {
 
 	return hsl(n0, 1.0, 0.5);
 }
+
+fn drawDebugSky(ouv: vec2<f32>) -> vec4<f32> {
+	return vec4(0.0);
+}
+
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
@@ -152,16 +157,23 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 	let sky = smoothstep(-0.1, 0.5, in.uv.y);
 	let haze = smoothstep(-0.2, 0.4, in.uv.y);
 	let stars = smoothstep(0.0, 0.5, in.uv.y);
+
+	let x = u.t;
+	let skyColor = drawDebugSky(in.uv);
+
+/*
 	var skyColor = mix(skyMidColor, skyTopColor, sky);
 	skyColor = mix(skyBotColor, skyColor, haze);
 
 
+
 	var starColor = drawStarField(in.uv);
 	//starColor *= drawDebugSky(in.uv);
-	skyColor += starColor * starColor.a * stars;
 	//skyColor = starColor;
 	//skyColor += drawDebugSky(in.uv) / 5.0;
 
+	skyColor += starColor * starColor.a * stars;
+	*/
 	color = albedo;
 
 	var rgb = vec3(0.0);
